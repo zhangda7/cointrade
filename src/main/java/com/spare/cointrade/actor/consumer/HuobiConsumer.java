@@ -2,7 +2,7 @@ package com.spare.cointrade.actor.consumer;
 
 import akka.actor.AbstractActor;
 import akka.actor.Props;
-import com.spare.cointrade.model.HuobiDepth;
+import com.spare.cointrade.model.depth.HuobiDepth;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

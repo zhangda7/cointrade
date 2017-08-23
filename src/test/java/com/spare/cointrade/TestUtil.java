@@ -3,9 +3,9 @@ package com.spare.cointrade;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.alibaba.fastjson.TypeReference;
-import com.spare.cointrade.model.HuobiDepth;
+import com.spare.cointrade.model.depth.HuobiDepth;
 import com.spare.cointrade.model.OkCoinData;
-import com.spare.cointrade.model.OkcoinDepth;
+import com.spare.cointrade.model.depth.OkcoinDepth;
 import org.junit.Test;
 
 import java.lang.reflect.Type;

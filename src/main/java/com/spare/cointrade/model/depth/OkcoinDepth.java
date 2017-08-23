@@ -1,4 +1,4 @@
-package com.spare.cointrade.model;
+package com.spare.cointrade.model.depth;
 
 import lombok.Data;
 

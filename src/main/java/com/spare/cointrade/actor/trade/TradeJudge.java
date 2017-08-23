@@ -1,15 +1,22 @@
 package com.spare.cointrade.actor.trade;
 
 import akka.actor.AbstractActor;
+import akka.actor.ActorRef;
+import akka.actor.ActorSelection;
 import akka.actor.Props;
-import com.spare.cointrade.model.HuobiDepth;
-import com.spare.cointrade.model.OkcoinDepth;
+import com.spare.cointrade.model.TradeAction;
+import com.spare.cointrade.model.depth.HuobiDepth;
+import com.spare.cointrade.model.depth.OkcoinDepth;
+import com.spare.cointrade.model.trade.HuobiTrade;
+import com.spare.cointrade.model.trade.OkCoinTrade;
+import com.spare.cointrade.util.AkkaContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Comparator;
 import java.util.List;
 import java.util.TreeMap;
+import java.util.zip.DeflaterOutputStream;
 
 /**
  * 对于收到的消息进行判决，判断是否要进行trade
@@ -24,6 +31,13 @@ public class TradeJudge extends AbstractActor {
     }
 
     private static final Double EXCHANGE_RATE = 6.67191524;
+
+    //手续费
+    private static final Double FIX_SERVICE_CHARGE = 0.002;
+
+    private ActorSelection huobiTraderActor;
+
+    private ActorSelection okCoinTraderActor;
 
     public TradeJudge() {
         huobiBidsDepth = new TreeMap<>(new Comparator<Double>() {
@@ -40,6 +54,8 @@ public class TradeJudge extends AbstractActor {
                 return (int) (o2 - o1);
             }
         });
+        huobiTraderActor = AkkaContext.getSystem().actorSelection("akka://rootSystem/user/huobiTrader");
+        okCoinTraderActor = AkkaContext.getSystem().actorSelection("akka://rootSystem/user/okCoinTrader");
     }
 
     /**
@@ -93,7 +109,43 @@ public class TradeJudge extends AbstractActor {
 //
 //        logger.info("Detal-2 {}", huobiBidsDepth.firstEntry().getKey() - okCoinAsksDepth.firstEntry().getKey());
 
-        logger.info("Delta-3 {}", huobiBidsDepth.firstEntry().getKey() - okCoinBidsDepth.firstEntry().getKey());
+        double huobiBuy1 = huobiBidsDepth.firstEntry().getKey();
+
+        double okCoinBuy1 = okCoinBidsDepth.firstEntry().getKey();
+
+        double maxBuy1Ratio = Math.max(huobiBuy1, okCoinBuy1) * FIX_SERVICE_CHARGE;
+
+        logger.info("Buy delta {}, service charge {}", Math.abs(huobiBuy1 - okCoinBuy1), maxBuy1Ratio);
+
+        if(huobiBuy1 - okCoinBuy1 > maxBuy1Ratio) {
+            // sell huobi
+            HuobiTrade huobiTrade = new HuobiTrade();
+            huobiTrade.setAmount(0.01);
+            huobiTrade.setPrice(huobiBuy1);
+            huobiTrade.setAction(TradeAction.SELL);
+            huobiTraderActor.tell(huobiTrade, ActorRef.noSender());
+            //buy okcoin
+            OkCoinTrade okCoinTrade = new OkCoinTrade();
+            okCoinTrade.setAmount(0.01);
+            okCoinTrade.setPrice(okCoinBuy1);
+            okCoinTrade.setAction(TradeAction.BUY);
+            okCoinTraderActor.tell(okCoinTrade, ActorRef.noSender());
+        } else if(okCoinBuy1 - huobiBuy1 > maxBuy1Ratio) {
+            // sell huobi
+            HuobiTrade huobiTrade = new HuobiTrade();
+            huobiTrade.setAmount(0.01);
+            huobiTrade.setPrice(huobiBuy1);
+            huobiTrade.setAction(TradeAction.BUY);
+            huobiTraderActor.tell(huobiTrade, ActorRef.noSender());
+            //buy okcoin
+            OkCoinTrade okCoinTrade = new OkCoinTrade();
+            okCoinTrade.setAmount(0.01);
+            okCoinTrade.setPrice(okCoinBuy1);
+            okCoinTrade.setAction(TradeAction.SELL);
+            okCoinTraderActor.tell(okCoinTrade, ActorRef.noSender());
+        }
+
+//        logger.info("Delta-3 {}", huobiBidsDepth.firstEntry().getKey() - okCoinBidsDepth.firstEntry().getKey());
     }
 
     private void parseOkCoin(OkcoinDepth depth) {

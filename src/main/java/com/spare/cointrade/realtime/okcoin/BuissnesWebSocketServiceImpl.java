@@ -6,7 +6,7 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.alibaba.fastjson.TypeReference;
 import com.spare.cointrade.model.OkCoinData;
-import com.spare.cointrade.model.OkcoinDepth;
+import com.spare.cointrade.model.depth.OkcoinDepth;
 import com.spare.cointrade.util.AkkaContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,7 +40,7 @@ public class BuissnesWebSocketServiceImpl implements WebSocketService {
 			return;
 		}
 		OkCoinData data = okCoinDataList.get(0);
-		if(! data.getChannel().equals("ok_sub_spot_btc_depth")) {
+		if(! data.getChannel().equals("ok_sub_spot_eth_depth")) {
 			return;
 		}
 		if(okCoinDataList.get(0).getData() instanceof JSONObject) {

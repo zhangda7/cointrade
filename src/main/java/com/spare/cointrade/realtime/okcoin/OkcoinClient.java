@@ -27,7 +27,10 @@ public class OkcoinClient {
         // 添加订阅
 //		client.addChannel("ok_sub_spotusd_btc_ticker");
 
-        client.addChannel("ok_sub_spot_btc_depth");
+//        client.addChannel("ok_sub_spot_btc_depth");
+
+        client.addChannel("ok_sub_spot_eth_depth");
+
     }
 
 }

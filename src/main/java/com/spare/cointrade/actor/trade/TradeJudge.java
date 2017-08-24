@@ -5,6 +5,7 @@ import akka.actor.ActorRef;
 import akka.actor.ActorSelection;
 import akka.actor.Props;
 import com.spare.cointrade.model.TradeAction;
+import com.spare.cointrade.model.TradeDepth;
 import com.spare.cointrade.model.depth.HuobiDepth;
 import com.spare.cointrade.model.depth.OkcoinDepth;
 import com.spare.cointrade.model.trade.HuobiTrade;
@@ -15,6 +16,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.TreeMap;
 import java.util.zip.DeflaterOutputStream;
 
@@ -61,20 +63,22 @@ public class TradeJudge extends AbstractActor {
     /**
      * 火币网的最新卖N深度数据，BID=买入
      */
-    private TreeMap<Double, Double> huobiBidsDepth;
+//    private TreeMap<Double, Double> huobiBidsDepth;
+    private TreeMap<Double, TradeDepth> huobiBidsDepth;
+
 
     /**
      * 火币网最新深度数据，ASK=卖出
      */
-    private TreeMap<Double, Double> huobiAsksDepth;
+    private TreeMap<Double, TradeDepth> huobiAsksDepth;
 
 
     /**
      * okcoin最新的深度数据。永远最新
      */
-    private TreeMap<Double, Double> okCoinBidsDepth;
+    private TreeMap<Double, TradeDepth> okCoinBidsDepth;
 
-    private TreeMap<Double, Double> okCoinAsksDepth;
+    private TreeMap<Double, TradeDepth> okCoinAsksDepth;
 
     private long tsOfHuobi;
 
@@ -109,38 +113,45 @@ public class TradeJudge extends AbstractActor {
 //
 //        logger.info("Detal-2 {}", huobiBidsDepth.firstEntry().getKey() - okCoinAsksDepth.firstEntry().getKey());
 
-        double huobiBuy1 = huobiBidsDepth.firstEntry().getKey();
+        TradeDepth huobiBuy1 = huobiBidsDepth.firstEntry().getValue();
 
-        double okCoinBuy1 = okCoinBidsDepth.firstEntry().getKey();
+        TradeDepth huobiSell1 = huobiAsksDepth.firstEntry().getValue();
 
-        double maxBuy1Ratio = Math.max(huobiBuy1, okCoinBuy1) * FIX_SERVICE_CHARGE;
+        TradeDepth okCoinBuy1 = okCoinBidsDepth.firstEntry().getValue();
 
-        logger.info("Buy delta {}, service charge {}", Math.abs(huobiBuy1 - okCoinBuy1), maxBuy1Ratio);
+        TradeDepth okCoinSell1 = okCoinAsksDepth.firstEntry().getValue();
 
-        if(huobiBuy1 - okCoinBuy1 > maxBuy1Ratio) {
+        double maxBuy1Ratio = Math.max(huobiBuy1.getPrice(), okCoinSell1.getPrice()) * FIX_SERVICE_CHARGE * 2; // buy , sell, so * 2
+
+        double maxBuy2Ratio = Math.max(huobiSell1.getPrice(), okCoinBuy1.getPrice()) * FIX_SERVICE_CHARGE * 2; // buy , sell, so * 2
+
+        logger.info("Buy delta {}, service charge {}", Math.abs(huobiBuy1.getPrice() - okCoinBuy1.getPrice()), maxBuy1Ratio);
+
+        //TODO 应该保存一下上次的状态，如果第一个价格发生了变化，才会再次去交易的
+        if(huobiBuy1.getPrice() - okCoinSell1.getPrice() > maxBuy1Ratio) {
             // sell huobi
             HuobiTrade huobiTrade = new HuobiTrade();
             huobiTrade.setAmount(0.01);
-            huobiTrade.setPrice(huobiBuy1);
+            huobiTrade.setPrice(huobiBuy1.getPrice());
             huobiTrade.setAction(TradeAction.SELL);
             huobiTraderActor.tell(huobiTrade, ActorRef.noSender());
             //buy okcoin
             OkCoinTrade okCoinTrade = new OkCoinTrade();
             okCoinTrade.setAmount(0.01);
-            okCoinTrade.setPrice(okCoinBuy1);
+            okCoinTrade.setPrice(okCoinBuy1.getPrice());
             okCoinTrade.setAction(TradeAction.BUY);
             okCoinTraderActor.tell(okCoinTrade, ActorRef.noSender());
-        } else if(okCoinBuy1 - huobiBuy1 > maxBuy1Ratio) {
+        } else if(okCoinBuy1.getPrice() - huobiSell1.getPrice() > maxBuy2Ratio) {
             // sell huobi
             HuobiTrade huobiTrade = new HuobiTrade();
             huobiTrade.setAmount(0.01);
-            huobiTrade.setPrice(huobiBuy1);
+            huobiTrade.setPrice(huobiBuy1.getPrice());
             huobiTrade.setAction(TradeAction.BUY);
             huobiTraderActor.tell(huobiTrade, ActorRef.noSender());
             //buy okcoin
             OkCoinTrade okCoinTrade = new OkCoinTrade();
             okCoinTrade.setAmount(0.01);
-            okCoinTrade.setPrice(okCoinBuy1);
+            okCoinTrade.setPrice(okCoinBuy1.getPrice());
             okCoinTrade.setAction(TradeAction.SELL);
             okCoinTraderActor.tell(okCoinTrade, ActorRef.noSender());
         }
@@ -155,29 +166,60 @@ public class TradeJudge extends AbstractActor {
         tsOfOkCoin = depth.getTimestamp();
 
         if(depth.getAsks() != null) {
-            for (List<String> pair : depth.getAsks()) {
-                Double price = Double.parseDouble(pair.get(0));
-                Double count = Double.parseDouble(pair.get(1));
-                if(count == 0) {
-                    okCoinAsksDepth.remove(price);
-                    continue;
-                }
-                okCoinAsksDepth.put(price, count);
-            }
+            updateOkCoin(depth.getAsks(), okCoinAsksDepth);
+//            for (List<String> pair : depth.getAsks()) {
+//                Double price = Double.parseDouble(pair.get(0));
+//                Double count = Double.parseDouble(pair.get(1));
+//                if(count == 0) {
+//                    okCoinAsksDepth.remove(price);
+//                    continue;
+//                }
+//                TradeDepth previous = okCoinAsksDepth.get(price);
+//                if(previous == null) {
+//                    previous = new TradeDepth();
+//                    previous.setPrice(price);
+//                }
+//                previous.setAmount(count);
+//                okCoinAsksDepth.put(price, previous);
+//            }
         }
 
         if(depth.getBids() != null) {
-            for (List<String> pair : depth.getBids()) {
-                Double price = Double.parseDouble(pair.get(0));
-                Double count = Double.parseDouble(pair.get(1));
-                if(count == 0) {
-                    okCoinBidsDepth.remove(price);
-                    continue;
-                }
-                okCoinBidsDepth.put(price, count);
-            }
+            updateOkCoin(depth.getBids(), okCoinBidsDepth);
+//            for (List<String> pair : depth.getBids()) {
+//                Double price = Double.parseDouble(pair.get(0));
+//                Double count = Double.parseDouble(pair.get(1));
+//                if(count == 0) {
+//                    okCoinBidsDepth.remove(price);
+//                    continue;
+//                }
+//                TradeDepth previous = okCoinBidsDepth.get(price);
+//                if(previous == null) {
+//                    previous = new TradeDepth();
+//                    previous.setPrice(price);
+//                }
+//                previous.setAmount(count);
+//                okCoinBidsDepth.put(price, count);
+//            }
         }
+    }
 
+    private void updateOkCoin(List<List<String>> datas, Map<Double, TradeDepth> okCoinDepth) {
+        for (List<String> pair : datas) {
+            Double price = Double.parseDouble(pair.get(0));
+            Double count = Double.parseDouble(pair.get(1));
+            if(count == 0) {
+                okCoinDepth.remove(price);
+                continue;
+            }
+            TradeDepth previous = okCoinDepth.get(price);
+            if(previous == null) {
+                previous = new TradeDepth();
+                previous.setPrice(price);
+            }
+            previous.setAmount(count);
+            okCoinDepth.put(price, previous);
+        }
     }
 
     private void parseHuobi(HuobiDepth depth) {
@@ -192,13 +234,19 @@ public class TradeJudge extends AbstractActor {
         huobiBidsDepth.clear();
         if(depth.getTick().getAsks() != null) {
             for (List<Double> pair : depth.getTick().getAsks()) {
-                huobiAsksDepth.put(pair.get(0), pair.get(1));
+                TradeDepth tradeDepth = new TradeDepth();
+                tradeDepth.setPrice(pair.get(0));
+                tradeDepth.setAmount(pair.get(1));
+                huobiAsksDepth.put(pair.get(0), tradeDepth);
             }
         }
 
         if(depth.getTick().getBids() != null) {
             for (List<Double> pair : depth.getTick().getBids()) {
-                huobiBidsDepth.put(pair.get(0), pair.get(1));
+                TradeDepth tradeDepth = new TradeDepth();
+                tradeDepth.setPrice(pair.get(0));
+                tradeDepth.setAmount(pair.get(1));
+                huobiBidsDepth.put(pair.get(0), tradeDepth);
             }
         }
     }

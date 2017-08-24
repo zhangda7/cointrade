@@ -5,8 +5,18 @@ package com.spare.cointrade.model;
  */
 public enum  TradeAction {
 
-    BUY,
-    SELL,
-    HOLD;
+    BUY("BUY"),
+    SELL("SELL"),
+    HOLD("HOLD");
+
+    private String value;
+
+    TradeAction(String value) {
+        this.value = value;
+    }
+
+    public String getValue() {
+        return this.value;
+    }
 
 }

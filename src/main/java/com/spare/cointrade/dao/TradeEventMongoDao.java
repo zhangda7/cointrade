@@ -6,6 +6,8 @@ import org.bson.Document;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.util.Date;
+
 /**
  * Created by dada on 2017/8/25.
  */
@@ -22,6 +24,9 @@ public class TradeEventMongoDao {
         document.put("type", huobiTrade.getSymbol());
         document.put("price", huobiTrade.getPrice());
         document.put("amount", huobiTrade.getAmount());
+        document.put("ts", huobiTrade.getTs());
+        document.put("comment", huobiTrade.getComment());
+        document.put("gmtCreated", new Date());
         mongoDao.getMongoDatabase().getCollection("tradeEvent").insertOne(document);
     }
 

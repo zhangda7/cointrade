@@ -40,19 +40,36 @@ public class HuobiTradeClient {
         this.accountId = String.valueOf(accounts.get(0).id);
     }
 
-    public Long createEtcOrder(Double amount, Double price) {
+    public String createEtcOrder(Double amount, Double price) {
         CreateOrderRequest createOrderReq = new CreateOrderRequest();
         createOrderReq.accountId = String.valueOf(accountId);
         createOrderReq.amount = String.valueOf(amount);
         createOrderReq.price = String.valueOf(price);
         createOrderReq.symbol = "etccny";
-//        createOrderReq.symbol = "ethcny";
         createOrderReq.type = CreateOrderRequest.OrderType.BUY_LIMIT;
         Long orderId = apiClient.createOrder(createOrderReq);
         //TODO 确认place的作用
         String r = apiClient.placeOrder(orderId);
         print(r);
-        return orderId;
+        return r;
+    }
+
+    public String createEthOrder(Double amount, Double price) {
+        CreateOrderRequest createOrderReq = new CreateOrderRequest();
+        createOrderReq.accountId = String.valueOf(accountId);
+        createOrderReq.amount = String.valueOf(amount);
+        createOrderReq.price = String.valueOf(price);
+        createOrderReq.symbol = "ethcny";
+        createOrderReq.type = CreateOrderRequest.OrderType.BUY_LIMIT;
+        Long orderId = apiClient.createOrder(createOrderReq);
+        String r = apiClient.placeOrder(orderId);
+        print(r);
+        //r is the string orderId
+        return r;
+    }
+
+    public OrderDetail queryOrder(String orderId) {
+        return apiClient.queryOrder(orderId);
     }
 
     private void curAccountStatus() {

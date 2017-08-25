@@ -5,4 +5,7 @@ package com.spare.cointrade.actor.minitor;
  * Created by dada on 2017/8/25.
  */
 public class OkCoinTradeMonitor {
+
+
+
 }

@@ -1,11 +1,14 @@
 package com.spare.cointrade.util;
 
+import org.springframework.stereotype.Component;
+
 import java.util.HashMap;
 import java.util.Map;
 
 /**
  * Created by dada on 2017/8/25.
  */
+@Component
 public class ApplicationContextHolder {
 
     public static Map<String, Object> beanMap = new HashMap<>();

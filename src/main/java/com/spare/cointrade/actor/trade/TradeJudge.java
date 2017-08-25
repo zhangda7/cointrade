@@ -35,7 +35,7 @@ public class TradeJudge extends AbstractActor {
     private static final Double EXCHANGE_RATE = 6.67191524;
 
     //手续费
-    private static final Double FIX_SERVICE_CHARGE = 0.002;
+    private static final Double FIX_SERVICE_CHARGE = 0.0002;
 
     private ActorSelection huobiTraderActor;
 
@@ -125,7 +125,8 @@ public class TradeJudge extends AbstractActor {
 
         double maxBuy2Ratio = Math.max(huobiSell1.getPrice(), okCoinBuy1.getPrice()) * FIX_SERVICE_CHARGE * 2; // buy , sell, so * 2
 
-        logger.info("Buy delta {}, service charge {}", Math.abs(huobiBuy1.getPrice() - okCoinBuy1.getPrice()), maxBuy1Ratio);
+        logger.info("[1] Buy delta {}, service charge {}", Math.abs(huobiBuy1.getPrice() - okCoinSell1.getPrice()), maxBuy1Ratio);
+        logger.info("[2] Buy delta {}, service charge {}", Math.abs(okCoinBuy1.getPrice() - huobiSell1.getPrice()), maxBuy2Ratio);
 
         //TODO 应该保存一下上次的状态，如果第一个价格发生了变化，才会再次去交易的
         if(huobiBuy1.getPrice() - okCoinSell1.getPrice() > maxBuy1Ratio) {
@@ -134,6 +135,7 @@ public class TradeJudge extends AbstractActor {
             huobiTrade.setAmount(0.01);
             huobiTrade.setPrice(huobiBuy1.getPrice());
             huobiTrade.setAction(TradeAction.SELL);
+            huobiTrade.setTs(curTs);
             huobiTraderActor.tell(huobiTrade, ActorRef.noSender());
             //buy okcoin
             OkCoinTrade okCoinTrade = new OkCoinTrade();
@@ -147,6 +149,7 @@ public class TradeJudge extends AbstractActor {
             huobiTrade.setAmount(0.01);
             huobiTrade.setPrice(huobiBuy1.getPrice());
             huobiTrade.setAction(TradeAction.BUY);
+            huobiTrade.setTs(curTs);
             huobiTraderActor.tell(huobiTrade, ActorRef.noSender());
             //buy okcoin
             OkCoinTrade okCoinTrade = new OkCoinTrade();

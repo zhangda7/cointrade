@@ -120,6 +120,12 @@ public class ApiClient {
     return resp.checkAndReturn();
   }
 
+  public OrderDetail queryOrder(String orderId) {
+    ApiResponse<OrderDetail> resp =
+            post("/v1/order/orders/" + orderId, null, new TypeReference<ApiResponse<OrderDetail>>() {});
+    return resp.checkAndReturn();
+  }
+
   // send a GET request.
   <T> T get(String uri, Map<String, String> params, TypeReference<T> ref) {
     if (params == null) {

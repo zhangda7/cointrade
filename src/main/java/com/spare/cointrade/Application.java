@@ -1,5 +1,7 @@
 package com.spare.cointrade;
 
+import akka.actor.ActorSystem;
+import com.spare.cointrade.actor.consumer.HuobiConsumer;
 import com.spare.cointrade.actor.minitor.HuobiTradeMonitor;
 import com.spare.cointrade.actor.trade.HuobiTrader;
 import com.spare.cointrade.actor.trade.OkCoinTrader;
@@ -7,6 +9,8 @@ import com.spare.cointrade.actor.trade.TradeJudge;
 import com.spare.cointrade.model.trade.HuobiTrade;
 import com.spare.cointrade.util.AkkaContext;
 import com.spare.cointrade.util.ApplicationContextHolder;
+import com.spare.cointrade.util.SpringExtension;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -21,18 +25,29 @@ import java.util.Arrays;
 @SpringBootApplication
 public class Application {
 
+    @Autowired
+    private ApplicationContext applicationContext;
+
     private static void initActor() {
         AkkaContext.getSystem().actorOf(TradeJudge.props(), "tradeJudge");
         AkkaContext.getSystem().actorOf(HuobiTrader.props(), "huobiTrader");
+        AkkaContext.getSystem().actorOf(HuobiConsumer.props(), "huobiConsumer");
+//        AkkaContext.getSystem().actorOf(HuobiTradeMonitor.props(), "huobiTradeMonitor");
         AkkaContext.getSystem().actorOf(OkCoinTrader.props(), "okCoinTrader");
-        AkkaContext.getSystem().actorOf(OkCoinTrader.props(), "huobiConsumer");
-        AkkaContext.getSystem().actorOf(HuobiTradeMonitor.props(), "huobiTradeMonitor");
 
     }
 
     public static void main(String[] args) {
-        initActor();
+//        initActor();
         SpringApplication.run(Application.class, args);
+    }
+
+//    @Bean
+    public ActorSystem actorSystem() {
+        ActorSystem system = AkkaContext.getSystem();
+        SpringExtension.SPRING_EXTENSION_PROVIDER.get(system)
+                .initialize(applicationContext);
+        return system;
     }
 
     @Bean
@@ -46,7 +61,7 @@ public class Application {
                 System.out.println(beanName);
                 ApplicationContextHolder.putBean(beanName.toUpperCase(), ctx.getBean(beanName));
             }
-
+            initActor();
         };
     }
 

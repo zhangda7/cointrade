@@ -17,4 +17,12 @@ public class OkCoinTrade {
 
     private Double amount;
 
+    private String orderId;
+
+    private String orderUrl;
+
+    private Long ts;
+
+    private String comment;
+
 }

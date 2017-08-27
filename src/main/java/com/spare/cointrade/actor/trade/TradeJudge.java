@@ -35,7 +35,7 @@ public class TradeJudge extends AbstractActor {
     private static final Double EXCHANGE_RATE = 6.67191524;
 
     //手续费
-    private static final Double FIX_SERVICE_CHARGE = 0.0002;
+    private static final Double FIX_SERVICE_CHARGE = 0.002;
 
     private ActorSelection huobiTraderActor;
 
@@ -62,6 +62,9 @@ public class TradeJudge extends AbstractActor {
 
     /**
      * 火币网的最新卖N深度数据，BID=买入
+     *  "bids": [
+     [买1价,买1量]
+     [买2价,买2量]
      */
 //    private TreeMap<Double, Double> huobiBidsDepth;
     private TreeMap<Double, TradeDepth> huobiBidsDepth;
@@ -69,6 +72,9 @@ public class TradeJudge extends AbstractActor {
 
     /**
      * 火币网最新深度数据，ASK=卖出
+     * "asks": [
+     [卖1价,卖1量]
+     [卖2价,卖2量]
      */
     private TreeMap<Double, TradeDepth> huobiAsksDepth;
 
@@ -105,7 +111,7 @@ public class TradeJudge extends AbstractActor {
 
     public void judge() {
         long curTs = System.currentTimeMillis();
-        logger.info("TS Delta {}, {}", curTs - tsOfHuobi, curTs - tsOfOkCoin);
+//        logger.info("TS Delta {}, {}", curTs - tsOfHuobi, curTs - tsOfOkCoin);
         if(huobiBidsDepth.size() == 0 || okCoinAsksDepth.size() == 0 || huobiAsksDepth.size() == 0 || okCoinBidsDepth.size() == 0) {
             return;
         }
@@ -125,38 +131,63 @@ public class TradeJudge extends AbstractActor {
 
         double maxBuy2Ratio = Math.max(huobiSell1.getPrice(), okCoinBuy1.getPrice()) * FIX_SERVICE_CHARGE * 2; // buy , sell, so * 2
 
-        logger.info("[1] Buy delta {}, service charge {}", Math.abs(huobiBuy1.getPrice() - okCoinSell1.getPrice()), maxBuy1Ratio);
-        logger.info("[2] Buy delta {}, service charge {}", Math.abs(okCoinBuy1.getPrice() - huobiSell1.getPrice()), maxBuy2Ratio);
+        logger.info("[1] Buy delta {}, service charge {}", huobiBuy1.getPrice() - okCoinSell1.getPrice(), maxBuy1Ratio);
+        logger.info("[2] Buy delta {}, service charge {}", okCoinBuy1.getPrice() - huobiSell1.getPrice(), maxBuy2Ratio);
 
         //TODO 应该保存一下上次的状态，如果第一个价格发生了变化，才会再次去交易的
         if(huobiBuy1.getPrice() - okCoinSell1.getPrice() > maxBuy1Ratio) {
             // sell huobi
+            //TODO 还需增加是否超出自身余额的判断
+            //TODO 相同的触发后，不能重复交易的。自己把对应的数目减掉就好了
+            Double amount = Math.min(huobiBuy1.getAmount(), okCoinSell1.getAmount());
             HuobiTrade huobiTrade = new HuobiTrade();
-            huobiTrade.setAmount(0.01);
+            huobiTrade.setAmount(amount);
             huobiTrade.setPrice(huobiBuy1.getPrice());
             huobiTrade.setAction(TradeAction.SELL);
             huobiTrade.setTs(curTs);
             huobiTraderActor.tell(huobiTrade, ActorRef.noSender());
             //buy okcoin
             OkCoinTrade okCoinTrade = new OkCoinTrade();
-            okCoinTrade.setAmount(0.01);
+            okCoinTrade.setAmount(amount);
             okCoinTrade.setPrice(okCoinBuy1.getPrice());
             okCoinTrade.setAction(TradeAction.BUY);
             okCoinTraderActor.tell(okCoinTrade, ActorRef.noSender());
+
+            //update data
+            huobiBuy1.setAmount(huobiBuy1.getAmount() - amount);
+            if(huobiBuy1.getAmount() == 0) {
+                huobiBidsDepth.remove(huobiBuy1.getPrice());
+            }
+            okCoinSell1.setAmount(okCoinSell1.getAmount() - amount);
+            if(okCoinSell1.getAmount() == 0) {
+                okCoinAsksDepth.remove(okCoinSell1.getPrice());
+            }
         } else if(okCoinBuy1.getPrice() - huobiSell1.getPrice() > maxBuy2Ratio) {
             // sell huobi
+            //TODO 还需增加是否超出自身余额的判断
+            Double amount = Math.min(okCoinBuy1.getAmount(), huobiSell1.getAmount());
             HuobiTrade huobiTrade = new HuobiTrade();
-            huobiTrade.setAmount(0.01);
+            huobiTrade.setAmount(amount);
             huobiTrade.setPrice(huobiBuy1.getPrice());
             huobiTrade.setAction(TradeAction.BUY);
             huobiTrade.setTs(curTs);
             huobiTraderActor.tell(huobiTrade, ActorRef.noSender());
             //buy okcoin
             OkCoinTrade okCoinTrade = new OkCoinTrade();
-            okCoinTrade.setAmount(0.01);
+            okCoinTrade.setAmount(amount);
             okCoinTrade.setPrice(okCoinBuy1.getPrice());
             okCoinTrade.setAction(TradeAction.SELL);
             okCoinTraderActor.tell(okCoinTrade, ActorRef.noSender());
+
+            //update data
+            okCoinBuy1.setAmount(okCoinBuy1.getAmount() - amount);
+            if(okCoinBuy1.getAmount() == 0) {
+                okCoinBidsDepth.remove(okCoinBuy1.getPrice());
+            }
+            huobiSell1.setAmount(huobiSell1.getAmount() - amount);
+            if(huobiSell1.getAmount() == 0) {
+                huobiAsksDepth.remove(huobiSell1.getPrice());
+            }
         }
 
 //        logger.info("Delta-3 {}", huobiBidsDepth.firstEntry().getKey() - okCoinBidsDepth.firstEntry().getKey());

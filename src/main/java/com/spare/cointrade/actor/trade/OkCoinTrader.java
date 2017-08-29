@@ -15,6 +15,8 @@ import com.spare.cointrade.util.CoinTradeContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.concurrent.atomic.AtomicInteger;
+
 /**
  * 执行实际交易的actor
  * Created by dada on 2017/8/20.
@@ -28,6 +30,8 @@ public class OkCoinTrader extends AbstractActor {
     }
 
     private OkCoinTradeClient okCoinTradeClient;
+
+    private AtomicInteger tradeCount = new AtomicInteger(0);
 
     @Override
     public AbstractActor.Receive createReceive() {
@@ -43,6 +47,9 @@ public class OkCoinTrader extends AbstractActor {
             try{
                 logger.info("Receive ok coin trade {}", trade);
                 if(!CoinTradeContext.DO_TRADE) {
+                    return;
+                }
+                if(tradeCount.getAndIncrement() > CoinTradeContext.HUOBI_TRADE_MAX) {
                     return;
                 }
                 String orderId = okCoinTradeClient.createEthOrder(trade.getAmount(), trade.getPrice(), trade.getAction());

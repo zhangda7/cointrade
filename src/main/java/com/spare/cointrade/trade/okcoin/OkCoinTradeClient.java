@@ -4,6 +4,7 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.alibaba.fastjson.TypeReference;
+import com.spare.cointrade.model.TradeAction;
 import com.spare.cointrade.trade.okcoin.stock.IStockRestApi;
 import com.spare.cointrade.trade.okcoin.stock.impl.StockRestApi;
 import org.apache.http.HttpException;
@@ -72,9 +73,15 @@ public class OkCoinTradeClient {
      * @throws IOException
      * @throws HttpException
      */
-    public String createEthOrder(Double price, Double amount) throws IOException, HttpException {
+    public String createEthOrder(Double price, Double amount, TradeAction action) throws IOException, HttpException {
         //现货下单交易
-        String tradeResult = stockPost.trade("eth_cny", "buy", String.valueOf(price), String.valueOf(amount));
+        String tradeAction = "";
+        if(action.equals(TradeAction.BUY)) {
+            tradeAction = "buy";
+        } else if(action.equals(TradeAction.SELL)) {
+            tradeAction = "sell";
+        }
+        String tradeResult = stockPost.trade("eth_cny", tradeAction, String.valueOf(price), String.valueOf(amount));
         OkCoinResponse okCoinResponse = JSON.parseObject(tradeResult, OkCoinResponse.class);
         if(okCoinResponse.getResult() == false) {
             throw new IllegalArgumentException("ERROR happened on create eth order, error code " + okCoinResponse.getError_code());
@@ -97,6 +104,10 @@ public class OkCoinTradeClient {
             return null;
         }
         return orderDetailList.get(0);
+    }
+
+    public String queryUser() throws IOException, HttpException {
+        return stockPost.userinfo();
     }
 
 

@@ -4,6 +4,7 @@ import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.ActorSelection;
 import akka.actor.Props;
+import com.spare.cointrade.model.CurStatus;
 import com.spare.cointrade.model.TradeAction;
 import com.spare.cointrade.model.TradeDepth;
 import com.spare.cointrade.model.depth.HuobiDepth;
@@ -14,10 +15,7 @@ import com.spare.cointrade.util.AkkaContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
+import java.util.*;
 import java.util.zip.DeflaterOutputStream;
 
 /**
@@ -40,6 +38,8 @@ public class TradeJudge extends AbstractActor {
     private ActorSelection huobiTraderActor;
 
     private ActorSelection okCoinTraderActor;
+
+    public static CurStatus curStatus = new CurStatus();
 
     public TradeJudge() {
         huobiBidsDepth = new TreeMap<>(new Comparator<Double>() {
@@ -134,6 +134,9 @@ public class TradeJudge extends AbstractActor {
         logger.info("[1] Buy delta {}, service charge {}", huobiBuy1.getPrice() - okCoinSell1.getPrice(), maxBuy1Ratio);
         logger.info("[2] Buy delta {}, service charge {}", okCoinBuy1.getPrice() - huobiSell1.getPrice(), maxBuy2Ratio);
 
+        curStatus.setDelta1(huobiBuy1.getPrice() - okCoinSell1.getPrice());
+        curStatus.setDelta2(okCoinBuy1.getPrice() - huobiSell1.getPrice());
+
         //TODO 应该保存一下上次的状态，如果第一个价格发生了变化，才会再次去交易的
         if(huobiBuy1.getPrice() - okCoinSell1.getPrice() > maxBuy1Ratio) {
             // sell huobi
@@ -198,7 +201,7 @@ public class TradeJudge extends AbstractActor {
             return;
         }
         tsOfOkCoin = depth.getTimestamp();
-
+        curStatus.setOkCoinDate(new Date(tsOfOkCoin));
         if(depth.getAsks() != null) {
             updateOkCoin(depth.getAsks(), okCoinAsksDepth);
 //            for (List<String> pair : depth.getAsks()) {
@@ -264,6 +267,7 @@ public class TradeJudge extends AbstractActor {
 //        logger.info("Huobi Ask : {}", huobiAsksDepth.firstEntry());
 //        logger.info("Huobi Bid : {}", huobiBidsDepth.lastEntry());
         tsOfHuobi = depth.getTick().getTs();
+        curStatus.setHuobiDate(new Date(tsOfHuobi));
         huobiAsksDepth.clear();
         huobiBidsDepth.clear();
         if(depth.getTick().getAsks() != null) {

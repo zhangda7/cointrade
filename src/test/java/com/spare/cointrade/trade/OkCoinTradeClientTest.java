@@ -1,6 +1,7 @@
 package com.spare.cointrade.trade;
 
 import com.alibaba.fastjson.JSON;
+import com.spare.cointrade.model.TradeAction;
 import com.spare.cointrade.trade.okcoin.OkCoinTradeClient;
 import com.spare.cointrade.trade.okcoin.OrderDetail;
 import org.apache.http.HttpException;
@@ -28,7 +29,7 @@ public class OkCoinTradeClientTest {
 
     @Test
     public void testOrder() throws IOException, HttpException {
-        String orderId = okCoinTradeClient.createEthOrder(1.0, 0.01);
+        String orderId = okCoinTradeClient.createEthOrder(1.0, 0.01, TradeAction.BUY);
         System.out.println(orderId);
     }
 

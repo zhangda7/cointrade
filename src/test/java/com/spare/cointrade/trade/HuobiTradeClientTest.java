@@ -1,6 +1,8 @@
 package com.spare.cointrade.trade;
 
 import com.alibaba.fastjson.JSON;
+import com.spare.cointrade.model.HuobiAccount;
+import com.spare.cointrade.model.TradeAction;
 import com.spare.cointrade.trade.huobi.HuobiTradeClient;
 import com.spare.cointrade.trade.huobi.OrderDetail;
 import org.junit.Before;
@@ -19,13 +21,13 @@ public class HuobiTradeClientTest {
 
     @Before
     public void before() throws IllegalAccessException {
-        huobiTradeClient = new HuobiTradeClient("", "");
+        huobiTradeClient = new HuobiTradeClient("","");
         huobiTradeClient.init();
     }
 
     @Test
     public void testCreateOrder() {
-        String orderId = huobiTradeClient.createEtcOrder(11.0, 23.0);
+        String orderId = huobiTradeClient.createEthOrder(11.0, 23.0, TradeAction.SELL);
         System.out.println(orderId);
     }
 
@@ -37,7 +39,8 @@ public class HuobiTradeClientTest {
 
     @Test
     public void testQueryUser() {
-
+        HuobiAccount huobiAccount = huobiTradeClient.queryBalance();
+        System.out.println(JSON.toJSONString(huobiAccount));
     }
 
 }

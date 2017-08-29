@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategy;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import com.spare.cointrade.model.HuobiAccount;
 import okhttp3.*;
 import okhttp3.OkHttpClient.Builder;
 import org.slf4j.Logger;
@@ -126,8 +127,8 @@ public class ApiClient {
     return resp.checkAndReturn();
   }
 
-  public String queryBalance(String accountId) {
-    ApiResponse<String> resp = get("/v1/account/accounts/" + accountId + "/balance", null, new TypeReference<ApiResponse<String>>() {});
+  public HuobiAccount queryBalance(String accountId) {
+    ApiResponse<HuobiAccount> resp = get("/v1/account/accounts/" + accountId + "/balance", null, new TypeReference<ApiResponse<HuobiAccount>>() {});
     return resp.checkAndReturn();
   }
 

@@ -1,5 +1,7 @@
 package com.spare.cointrade.trade.huobi;
 
+import com.spare.cointrade.model.HuobiAccount;
+import com.spare.cointrade.model.TradeAction;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
@@ -49,27 +51,35 @@ public class HuobiTradeClient {
         this.accountId = String.valueOf(accounts.get(0).id);
     }
 
-    public String createEtcOrder(Double amount, Double price) {
-        CreateOrderRequest createOrderReq = new CreateOrderRequest();
-        createOrderReq.accountId = String.valueOf(accountId);
-        createOrderReq.amount = String.valueOf(amount);
-        createOrderReq.price = String.valueOf(price);
-        createOrderReq.symbol = "etccny";
-        createOrderReq.type = CreateOrderRequest.OrderType.BUY_LIMIT;
-        Long orderId = apiClient.createOrder(createOrderReq);
-        //TODO 确认place的作用
-        String r = apiClient.placeOrder(orderId);
-        print(r);
-        return r;
-    }
+//    public String createEtcOrder(Double amount, Double price, TradeAction action) {
+//        CreateOrderRequest createOrderReq = new CreateOrderRequest();
+//        createOrderReq.accountId = String.valueOf(accountId);
+//        createOrderReq.amount = String.valueOf(amount);
+//        createOrderReq.price = String.valueOf(price);
+//        createOrderReq.symbol = "etccny";
+//        if(action.equals(TradeAction.BUY)) {
+//            createOrderReq.type = CreateOrderRequest.OrderType.BUY_LIMIT;
+//        } else if(action.equals(TradeAction.SELL)) {
+//            createOrderReq.type = CreateOrderRequest.OrderType.SELL_LIMIT;
+//        }
+//        Long orderId = apiClient.createOrder(createOrderReq);
+//        //TODO 确认place的作用
+//        String r = apiClient.placeOrder(orderId);
+//        print(r);
+//        return r;
+//    }
 
-    public String createEthOrder(Double amount, Double price) {
+    public String createEthOrder(Double amount, Double price, TradeAction action) {
         CreateOrderRequest createOrderReq = new CreateOrderRequest();
         createOrderReq.accountId = String.valueOf(accountId);
         createOrderReq.amount = String.valueOf(amount);
         createOrderReq.price = String.valueOf(price);
         createOrderReq.symbol = "ethcny";
-        createOrderReq.type = CreateOrderRequest.OrderType.BUY_LIMIT;
+        if(action.equals(TradeAction.BUY)) {
+            createOrderReq.type = CreateOrderRequest.OrderType.BUY_LIMIT;
+        } else if(action.equals(TradeAction.SELL)) {
+            createOrderReq.type = CreateOrderRequest.OrderType.SELL_LIMIT;
+        }
         Long orderId = apiClient.createOrder(createOrderReq);
         String r = apiClient.placeOrder(orderId);
         print(r);
@@ -81,7 +91,7 @@ public class HuobiTradeClient {
         return apiClient.queryOrder(orderId);
     }
 
-    public String quertBalance() {
+    public HuobiAccount queryBalance() {
         return apiClient.queryBalance(this.accountId);
     }
 

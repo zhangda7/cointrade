@@ -11,6 +11,7 @@ import com.spare.cointrade.trade.huobi.ApiException;
 import com.spare.cointrade.trade.huobi.HuobiTradeClient;
 import com.spare.cointrade.trade.okcoin.OkCoinTradeClient;
 import com.spare.cointrade.util.ApplicationContextHolder;
+import com.spare.cointrade.util.CoinTradeContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,7 +42,10 @@ public class OkCoinTrader extends AbstractActor {
             }
             try{
                 logger.info("Receive ok coin trade {}", trade);
-                String orderId = okCoinTradeClient.createEthOrder(trade.getAmount(), trade.getPrice());
+                if(!CoinTradeContext.DO_TRADE) {
+                    return;
+                }
+                String orderId = okCoinTradeClient.createEthOrder(trade.getAmount(), trade.getPrice(), trade.getAction());
                 trade.setOrderId(orderId);
                 logger.info("Order is is {} for {}", orderId, trade);
                 OkCoinTradeMonitor.getTobeConfirmedTradeQueue().add(trade);

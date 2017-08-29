@@ -131,8 +131,8 @@ public class TradeJudge extends AbstractActor {
 
         double maxBuy2Ratio = Math.max(huobiSell1.getPrice(), okCoinBuy1.getPrice()) * FIX_SERVICE_CHARGE * 2; // buy , sell, so * 2
 
-        logger.info("[1] Buy delta {}, service charge {}", huobiBuy1.getPrice() - okCoinSell1.getPrice(), maxBuy1Ratio);
-        logger.info("[2] Buy delta {}, service charge {}", okCoinBuy1.getPrice() - huobiSell1.getPrice(), maxBuy2Ratio);
+//        logger.info("[1] Buy delta {}, service charge {}", huobiBuy1.getPrice() - okCoinSell1.getPrice(), maxBuy1Ratio);
+//        logger.info("[2] Buy delta {}, service charge {}", okCoinBuy1.getPrice() - huobiSell1.getPrice(), maxBuy2Ratio);
 
         curStatus.setDelta1(huobiBuy1.getPrice() - okCoinSell1.getPrice());
         curStatus.setDelta2(okCoinBuy1.getPrice() - huobiSell1.getPrice());

@@ -27,8 +27,17 @@ public class HuobiTradeClient {
 
     private String accountId;
 
+    public HuobiTradeClient() {
+
+    }
+
+    public HuobiTradeClient(String API_KEY, String API_SECRET) {
+        this.API_KEY = API_KEY;
+        this.API_SECRET = API_SECRET;
+    }
+
     @PostConstruct
-    private void init() throws IllegalAccessException {
+    public void init() throws IllegalAccessException {
         apiClient = new ApiClient(API_KEY, API_SECRET);
         List<Account> accounts = apiClient.getAccounts();
         if(CollectionUtils.isEmpty(accounts)) {
@@ -70,6 +79,14 @@ public class HuobiTradeClient {
 
     public OrderDetail queryOrder(String orderId) {
         return apiClient.queryOrder(orderId);
+    }
+
+    public String quertBalance() {
+        return apiClient.queryBalance(this.accountId);
+    }
+
+    public String cancelOrder(String orderId) {
+        return apiClient.cancelOrder(orderId);
     }
 
     private void curAccountStatus() {

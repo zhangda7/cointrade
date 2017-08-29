@@ -149,7 +149,7 @@ public class TradeJudge extends AbstractActor {
             //buy okcoin
             OkCoinTrade okCoinTrade = new OkCoinTrade();
             okCoinTrade.setAmount(amount);
-            okCoinTrade.setPrice(okCoinBuy1.getPrice());
+            okCoinTrade.setPrice(okCoinSell1.getPrice());
             okCoinTrade.setAction(TradeAction.BUY);
             okCoinTraderActor.tell(okCoinTrade, ActorRef.noSender());
 
@@ -168,7 +168,7 @@ public class TradeJudge extends AbstractActor {
             Double amount = Math.min(okCoinBuy1.getAmount(), huobiSell1.getAmount());
             HuobiTrade huobiTrade = new HuobiTrade();
             huobiTrade.setAmount(amount);
-            huobiTrade.setPrice(huobiBuy1.getPrice());
+            huobiTrade.setPrice(huobiSell1.getPrice());
             huobiTrade.setAction(TradeAction.BUY);
             huobiTrade.setTs(curTs);
             huobiTraderActor.tell(huobiTrade, ActorRef.noSender());

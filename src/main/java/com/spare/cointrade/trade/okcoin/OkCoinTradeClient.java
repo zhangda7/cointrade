@@ -35,6 +35,13 @@ public class OkCoinTradeClient {
     @Value("${okcoin.api.secret}")
     private String secret_key;
 
+    public OkCoinTradeClient(String api_key, String secret_key) {
+        this.api_key = api_key;
+        this.secret_key = secret_key;
+    }
+
+    public OkCoinTradeClient() {}
+
     String url_prex = "https://www.okcoin.cn";  //注意：请求URL 国际站https://www.okcoin.com ; 国内站https://www.okcoin.cn
 
     /**
@@ -53,7 +60,7 @@ public class OkCoinTradeClient {
 //    IStockRestApi stockPost = new StockRestApi(url_prex, api_key, secret_key);
 
     @PostConstruct
-    private void init() {
+    public void init() {
         this.stockPost = new StockRestApi(url_prex, api_key, secret_key);
     }
 

@@ -122,7 +122,17 @@ public class ApiClient {
 
   public OrderDetail queryOrder(String orderId) {
     ApiResponse<OrderDetail> resp =
-            post("/v1/order/orders/" + orderId, null, new TypeReference<ApiResponse<OrderDetail>>() {});
+            get("/v1/order/orders/" + orderId, null, new TypeReference<ApiResponse<OrderDetail>>() {});
+    return resp.checkAndReturn();
+  }
+
+  public String queryBalance(String accountId) {
+    ApiResponse<String> resp = get("/v1/account/accounts/" + accountId + "/balance", null, new TypeReference<ApiResponse<String>>() {});
+    return resp.checkAndReturn();
+  }
+
+  public String cancelOrder(String orderId) {
+    ApiResponse<String> resp = post("/v1/order/orders/" + orderId + "/submitcancel", null, new TypeReference<ApiResponse<String>>() {});
     return resp.checkAndReturn();
   }
 

@@ -84,7 +84,7 @@ public class OkCoinTradeClient {
         String tradeResult = stockPost.trade("eth_cny", tradeAction, String.valueOf(price), String.valueOf(amount));
         OkCoinResponse okCoinResponse = JSON.parseObject(tradeResult, OkCoinResponse.class);
         if(okCoinResponse.getResult() == false) {
-            throw new IllegalArgumentException("ERROR happened on create eth order, error code " + okCoinResponse.getError_code());
+            throw new IllegalArgumentException("ERROR happened on create eth order, error code " + okCoinResponse.getError_code() + ":" + JSON.toJSONString(okCoinResponse));
         }
         JSONObject tradeJSV1 = JSONObject.parseObject(tradeResult);
         String tradeOrderV1 = tradeJSV1.getString("order_id");

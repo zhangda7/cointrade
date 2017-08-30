@@ -12,6 +12,7 @@ import com.spare.cointrade.model.depth.OkcoinDepth;
 import com.spare.cointrade.model.trade.HuobiTrade;
 import com.spare.cointrade.model.trade.OkCoinTrade;
 import com.spare.cointrade.util.AkkaContext;
+import com.spare.cointrade.util.CoinTradeContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,7 +46,7 @@ public class TradeJudge extends AbstractActor {
         huobiBidsDepth = new TreeMap<>(new Comparator<Double>() {
             @Override
             public int compare(Double o1, Double o2) {
-                return (int) (o2 - o1);
+                return o2.compareTo(o1);
             }
         });
         huobiAsksDepth = new TreeMap<>();
@@ -53,7 +54,7 @@ public class TradeJudge extends AbstractActor {
         okCoinBidsDepth = new TreeMap<>(new Comparator<Double>() {
             @Override
             public int compare(Double o1, Double o2) {
-                return (int) (o2 - o1);
+                return o2.compareTo(o1);
             }
         });
         huobiTraderActor = AkkaContext.getSystem().actorSelection("akka://rootSystem/user/huobiTrader");
@@ -136,6 +137,10 @@ public class TradeJudge extends AbstractActor {
 
         curStatus.setDelta1(huobiBuy1.getPrice() - okCoinSell1.getPrice());
         curStatus.setDelta2(okCoinBuy1.getPrice() - huobiSell1.getPrice());
+        curStatus.setHuobiBuy1(huobiBuy1);
+        curStatus.setHuobiSell1(huobiSell1);
+        curStatus.setOkcoinBuy1(okCoinBuy1);
+        curStatus.setOkcoinSell1(okCoinSell1);
 
         //TODO 应该保存一下上次的状态，如果第一个价格发生了变化，才会再次去交易的
         if(huobiBuy1.getPrice() - okCoinSell1.getPrice() > maxBuy1Ratio) {
@@ -143,6 +148,9 @@ public class TradeJudge extends AbstractActor {
             //TODO 还需增加是否超出自身余额的判断
             //TODO 相同的触发后，不能重复交易的。自己把对应的数目减掉就好了
             Double amount = Math.min(huobiBuy1.getAmount(), okCoinSell1.getAmount());
+
+            amount = Math.min(amount, CoinTradeContext.MAX_TRADE_AMOUNT);
+
             HuobiTrade huobiTrade = new HuobiTrade();
             huobiTrade.setAmount(amount);
             huobiTrade.setPrice(huobiBuy1.getPrice());
@@ -169,6 +177,9 @@ public class TradeJudge extends AbstractActor {
             // sell huobi
             //TODO 还需增加是否超出自身余额的判断
             Double amount = Math.min(okCoinBuy1.getAmount(), huobiSell1.getAmount());
+
+            amount = Math.min(amount, CoinTradeContext.MAX_TRADE_AMOUNT);
+
             HuobiTrade huobiTrade = new HuobiTrade();
             huobiTrade.setAmount(amount);
             huobiTrade.setPrice(huobiSell1.getPrice());
@@ -204,40 +215,10 @@ public class TradeJudge extends AbstractActor {
         curStatus.setOkCoinDate(new Date(tsOfOkCoin));
         if(depth.getAsks() != null) {
             updateOkCoin(depth.getAsks(), okCoinAsksDepth);
-//            for (List<String> pair : depth.getAsks()) {
-//                Double price = Double.parseDouble(pair.get(0));
-//                Double count = Double.parseDouble(pair.get(1));
-//                if(count == 0) {
-//                    okCoinAsksDepth.remove(price);
-//                    continue;
-//                }
-//                TradeDepth previous = okCoinAsksDepth.get(price);
-//                if(previous == null) {
-//                    previous = new TradeDepth();
-//                    previous.setPrice(price);
-//                }
-//                previous.setAmount(count);
-//                okCoinAsksDepth.put(price, previous);
-//            }
         }
 
         if(depth.getBids() != null) {
             updateOkCoin(depth.getBids(), okCoinBidsDepth);
-//            for (List<String> pair : depth.getBids()) {
-//                Double price = Double.parseDouble(pair.get(0));
-//                Double count = Double.parseDouble(pair.get(1));
-//                if(count == 0) {
-//                    okCoinBidsDepth.remove(price);
-//                    continue;
-//                }
-//                TradeDepth previous = okCoinBidsDepth.get(price);
-//                if(previous == null) {
-//                    previous = new TradeDepth();
-//                    previous.setPrice(price);
-//                }
-//                previous.setAmount(count);
-//                okCoinBidsDepth.put(price, count);
-//            }
         }
     }
 

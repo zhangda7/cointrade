@@ -21,4 +21,12 @@ public class CurStatus {
 
     private Double delta2;
 
+    private TradeDepth huobiBuy1;
+
+    private TradeDepth huobiSell1;
+
+    private TradeDepth okcoinBuy1;
+
+    private TradeDepth okcoinSell1;
+
 }

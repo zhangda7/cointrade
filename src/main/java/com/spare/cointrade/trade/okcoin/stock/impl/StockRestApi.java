@@ -1,10 +1,13 @@
 package com.spare.cointrade.trade.okcoin.stock.impl;
 
+import com.alibaba.fastjson.JSON;
 import com.spare.cointrade.trade.okcoin.HttpUtilManager;
 import com.spare.cointrade.trade.okcoin.MD5Util;
 import com.spare.cointrade.trade.okcoin.StringUtil;
 import com.spare.cointrade.trade.okcoin.stock.IStockRestApi;
 import org.apache.http.HttpException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -12,6 +15,8 @@ import java.util.Map;
 
 
 public class StockRestApi implements IStockRestApi {
+
+	private static Logger logger = LoggerFactory.getLogger(StockRestApi.class);
 
 	private String secret_key;
 	
@@ -163,7 +168,9 @@ public class StockRestApi implements IStockRestApi {
 		}
 		String sign = MD5Util.buildMysignV1(params, this.secret_key);
 		params.put("sign", sign);
-		
+
+		logger.info("okcoin trade {}", JSON.toJSONString(params));
+
 		// 发送post请求
 		HttpUtilManager httpUtil = HttpUtilManager.getInstance();
 		String result = httpUtil.requestHttpPost(url_prex,this.TRADE_URL,

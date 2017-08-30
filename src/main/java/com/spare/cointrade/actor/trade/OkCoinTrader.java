@@ -49,10 +49,10 @@ public class OkCoinTrader extends AbstractActor {
                 if(!CoinTradeContext.DO_TRADE) {
                     return;
                 }
-                if(tradeCount.getAndIncrement() > CoinTradeContext.HUOBI_TRADE_MAX) {
+                if(tradeCount.getAndIncrement() > CoinTradeContext.OKCOIN_TRADE_MAX) {
                     return;
                 }
-                String orderId = okCoinTradeClient.createEthOrder(trade.getAmount(), trade.getPrice(), trade.getAction());
+                String orderId = okCoinTradeClient.createEthOrder(trade.getPrice(), trade.getAmount(), trade.getAction());
                 trade.setOrderId(orderId);
                 logger.info("Order is is {} for {}", orderId, trade);
                 OkCoinTradeMonitor.getTobeConfirmedTradeQueue().add(trade);

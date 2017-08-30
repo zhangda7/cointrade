@@ -5,9 +5,11 @@ package com.spare.cointrade.util;
  */
 public class CoinTradeContext {
 
-    public static boolean DO_TRADE = false;
+    public static final boolean DO_TRADE = false;
 
-    public static int HUOBI_TRADE_MAX = 2;
+    public static final double MAX_TRADE_AMOUNT = 0.01;
 
-    public static int OKCOIN_TRADE_MAX = 2;
+    public static final int HUOBI_TRADE_MAX = 1;
+
+    public static final int OKCOIN_TRADE_MAX = 1;
 }

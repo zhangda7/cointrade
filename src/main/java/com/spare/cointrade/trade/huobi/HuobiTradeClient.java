@@ -1,7 +1,12 @@
 package com.spare.cointrade.trade.huobi;
 
+import com.spare.cointrade.actor.trade.TradeJudge;
+import com.spare.cointrade.model.AccountInfo;
 import com.spare.cointrade.model.HuobiAccount;
+import com.spare.cointrade.model.HuobiSubAccount;
 import com.spare.cointrade.model.TradeAction;
+import com.spare.cointrade.util.CoinTradeConstants;
+import com.spare.cointrade.util.CoinTradeContext;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
@@ -49,6 +54,28 @@ public class HuobiTradeClient {
             throw new IllegalAccessException("Huobi account size is > 1 : " + accounts.size());
         }
         this.accountId = String.valueOf(accounts.get(0).id);
+
+        fillAccountInfo();
+    }
+
+    private void fillAccountInfo() {
+        AccountInfo accountInfo = new AccountInfo();
+        accountInfo.setSource(CoinTradeConstants.SOURCE_HUOBI);
+        accountInfo.setSymbol(CoinTradeConstants.SYMBOL_ETH);
+        HuobiAccount huobiAccount = this.queryBalance();
+        accountInfo.setType(huobiAccount.getType());
+        accountInfo.setState(huobiAccount.getState());
+        accountInfo.setId(String.valueOf(huobiAccount.getId()));
+
+        for (HuobiSubAccount huobiSubAccount : huobiAccount.getList()) {
+            if(huobiSubAccount.getCurrency().equals("cny") && huobiSubAccount.getType().equals("trade")) {
+                accountInfo.setMoney(Double.valueOf(huobiSubAccount.getBalance()));
+            }
+            if(huobiSubAccount.getCurrency().equals("eth") && huobiSubAccount.getType().equals("trade")) {
+                accountInfo.setCoinAmount(Double.valueOf(huobiSubAccount.getBalance()));
+            }
+        }
+        TradeJudge.curStatus.setHuobiAccount(accountInfo);
     }
 
 //    public String createEtcOrder(Double amount, Double price, TradeAction action) {

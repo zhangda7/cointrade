@@ -22,7 +22,7 @@ public class OkCoinTradeClientTest {
     OkCoinTradeClient okCoinTradeClient;
 
     @Before
-    public void before() {
+    public void before() throws IOException, HttpException {
         okCoinTradeClient = new OkCoinTradeClient("", "");
         okCoinTradeClient.init();
     }

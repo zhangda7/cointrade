@@ -29,4 +29,8 @@ public class CurStatus {
 
     private TradeDepth okcoinSell1;
 
+    private AccountInfo huobiAccount;
+
+    private AccountInfo okCoinAccount;
+
 }

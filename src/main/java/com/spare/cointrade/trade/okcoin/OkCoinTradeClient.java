@@ -4,9 +4,15 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.alibaba.fastjson.TypeReference;
+import com.spare.cointrade.actor.trade.TradeJudge;
+import com.spare.cointrade.model.AccountInfo;
+import com.spare.cointrade.model.HuobiAccount;
+import com.spare.cointrade.model.HuobiSubAccount;
 import com.spare.cointrade.model.TradeAction;
+import com.spare.cointrade.model.okcoin.OkCoinAccountFree;
 import com.spare.cointrade.trade.okcoin.stock.IStockRestApi;
 import com.spare.cointrade.trade.okcoin.stock.impl.StockRestApi;
+import com.spare.cointrade.util.CoinTradeConstants;
 import org.apache.http.HttpException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -63,6 +69,26 @@ public class OkCoinTradeClient {
     @PostConstruct
     public void init() {
         this.stockPost = new StockRestApi(url_prex, api_key, secret_key);
+        try {
+            fillAccountInfo();
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.exit(1);
+        }
+    }
+
+    private void fillAccountInfo() throws IOException, HttpException {
+        AccountInfo accountInfo = new AccountInfo();
+        accountInfo.setSource(CoinTradeConstants.SOURCE_OKCOIN);
+        accountInfo.setSymbol(CoinTradeConstants.SYMBOL_ETH);
+        //{"result":true,"info":{"funds":{"borrow":{"btc":"0","bcc":"0","etc":"0","eth":"0","ltc":"0","cny":"0"},"asset":{"total":"1211.6306052","net":"1211.6306052"},"free":{"btc":"0.00748","bcc":"0","etc":"0","eth":"0.00998","ltc":"0","cny":"968.1554"},"freezed":{"btc":"0","bcc":"0","etc":"0","eth":"0","ltc":"0","cny":"0"}}}}
+        String user = this.queryUser();
+        JSONObject jsonObject = JSON.parseObject(user);
+        OkCoinAccountFree okCoinAccountFree = JSON.parseObject(jsonObject.getJSONObject("info").getJSONObject("funds").getString("free"), OkCoinAccountFree.class);
+        accountInfo.setCoinAmount(okCoinAccountFree.getEth());
+        accountInfo.setMoney(okCoinAccountFree.getCny());
+
+        TradeJudge.curStatus.setOkCoinAccount(accountInfo);
     }
 
     /**

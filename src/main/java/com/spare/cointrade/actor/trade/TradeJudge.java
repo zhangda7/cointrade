@@ -17,6 +17,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.zip.DeflaterOutputStream;
 
 /**
@@ -91,6 +92,10 @@ public class TradeJudge extends AbstractActor {
 
     private long tsOfOkCoin;
 
+    private AtomicInteger tradeCount1 = new AtomicInteger(0);
+
+    private AtomicInteger tradeCount2 = new AtomicInteger(0);
+
     @Override
     public Receive createReceive() {
         return receiveBuilder().match(HuobiDepth.class, (depth -> {
@@ -142,6 +147,8 @@ public class TradeJudge extends AbstractActor {
         curStatus.setOkcoinBuy1(okCoinBuy1);
         curStatus.setOkcoinSell1(okCoinSell1);
 
+        Double minAmount = Math.min(curStatus.getHuobiAccount().getCoinAmount(), curStatus.getOkCoinAccount().getCoinAmount());
+
         //TODO 应该保存一下上次的状态，如果第一个价格发生了变化，才会再次去交易的
         if(huobiBuy1.getPrice() - okCoinSell1.getPrice() > maxBuy1Ratio) {
             // sell huobi
@@ -151,17 +158,43 @@ public class TradeJudge extends AbstractActor {
 
             amount = Math.min(amount, CoinTradeContext.MAX_TRADE_AMOUNT);
 
+            amount = Math.min(amount, minAmount);
+
+            if(amount < 0.0099999) {
+                logger.info("Min amount is {} < 0.1, return {} {}", amount, minAmount, Math.min(huobiBuy1.getAmount(), okCoinSell1.getAmount()));
+                return;
+            }
+
+            if(tradeCount1.getAndIncrement() >= CoinTradeContext.OKCOIN_TRADE_MAX) {
+                logger.info("count 1 reach max count {}, return", tradeCount1.get());
+                return;
+            }
+
             HuobiTrade huobiTrade = new HuobiTrade();
             huobiTrade.setAmount(amount);
             huobiTrade.setPrice(huobiBuy1.getPrice());
             huobiTrade.setAction(TradeAction.SELL);
             huobiTrade.setTs(curTs);
-            huobiTraderActor.tell(huobiTrade, ActorRef.noSender());
+//            huobiTraderActor.tell(huobiTrade, ActorRef.noSender());
             //buy okcoin
             OkCoinTrade okCoinTrade = new OkCoinTrade();
             okCoinTrade.setAmount(amount);
             okCoinTrade.setPrice(okCoinSell1.getPrice());
             okCoinTrade.setAction(TradeAction.BUY);
+
+            if(curStatus.getOkCoinAccount().getMoney() < okCoinTrade.getPrice() * amount) {
+                logger.info("OK coin money is {}, less than {}, return", curStatus.getOkCoinAccount().getMoney(),
+                        okCoinTrade.getPrice() * okCoinTrade.getAmount());
+                return;
+            }
+            curStatus.getHuobiAccount().setCoinAmount(curStatus.getHuobiAccount().getCoinAmount() - amount);
+            curStatus.getHuobiAccount().setMoney(curStatus.getHuobiAccount().getMoney() + huobiBuy1.getPrice() * amount);
+
+            curStatus.getOkCoinAccount().setCoinAmount(curStatus.getOkCoinAccount().getCoinAmount() + amount);
+            curStatus.getOkCoinAccount().setMoney(curStatus.getOkCoinAccount().getMoney() - okCoinSell1.getPrice() * amount);
+
+
+            huobiTraderActor.tell(huobiTrade, ActorRef.noSender());
             okCoinTraderActor.tell(okCoinTrade, ActorRef.noSender());
 
             //update data
@@ -180,17 +213,43 @@ public class TradeJudge extends AbstractActor {
 
             amount = Math.min(amount, CoinTradeContext.MAX_TRADE_AMOUNT);
 
+            amount = Math.min(amount, minAmount);
+
+            if(amount < 0.0099999) {
+                logger.info("Min amount is {} < 0.1, return {} {}", amount, minAmount, Math.min(okCoinBuy1.getAmount(), huobiSell1.getAmount()));
+                return;
+            }
+
+            if(tradeCount2.getAndIncrement() >= CoinTradeContext.OKCOIN_TRADE_MAX) {
+                logger.info("count 2 reach max count {}, return", tradeCount2.get());
+                return;
+            }
+
             HuobiTrade huobiTrade = new HuobiTrade();
             huobiTrade.setAmount(amount);
             huobiTrade.setPrice(huobiSell1.getPrice());
             huobiTrade.setAction(TradeAction.BUY);
             huobiTrade.setTs(curTs);
-            huobiTraderActor.tell(huobiTrade, ActorRef.noSender());
+//            huobiTraderActor.tell(huobiTrade, ActorRef.noSender());
             //buy okcoin
             OkCoinTrade okCoinTrade = new OkCoinTrade();
             okCoinTrade.setAmount(amount);
             okCoinTrade.setPrice(okCoinBuy1.getPrice());
             okCoinTrade.setAction(TradeAction.SELL);
+
+            if(curStatus.getHuobiAccount().getMoney() < huobiSell1.getPrice() * amount) {
+                logger.info("Huobi money is {}, less than {}, return", curStatus.getHuobiAccount().getMoney(),
+                        huobiTrade.getPrice() * huobiTrade.getAmount());
+                return;
+            }
+            curStatus.getHuobiAccount().setCoinAmount(curStatus.getHuobiAccount().getCoinAmount() + amount);
+            curStatus.getHuobiAccount().setMoney(curStatus.getHuobiAccount().getMoney() - huobiSell1.getPrice() * amount);
+
+            curStatus.getOkCoinAccount().setCoinAmount(curStatus.getOkCoinAccount().getCoinAmount() - amount);
+            curStatus.getOkCoinAccount().setMoney(curStatus.getOkCoinAccount().getMoney() + okCoinBuy1.getPrice() * amount);
+
+
+            huobiTraderActor.tell(huobiTrade, ActorRef.noSender());
             okCoinTraderActor.tell(okCoinTrade, ActorRef.noSender());
 
             //update data

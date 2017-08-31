@@ -54,7 +54,7 @@ public class HuobiTrader extends AbstractActor {
                 if(!CoinTradeContext.DO_TRADE) {
                     return;
                 }
-                if(tradeCount.getAndIncrement() > CoinTradeContext.HUOBI_TRADE_MAX) {
+                if(tradeCount.getAndIncrement() >= CoinTradeContext.HUOBI_TRADE_MAX) {
                     return;
                 }
                 String orderId = huobiTradeClient.createEthOrder(trade.getAmount(), trade.getPrice(), trade.getAction());

@@ -47,9 +47,11 @@ public class OkCoinTrader extends AbstractActor {
             try{
                 logger.info("Receive ok coin trade {}", trade);
                 if(!CoinTradeContext.DO_TRADE) {
+                    logger.info("OK coin trade status is {}, return", CoinTradeContext.DO_TRADE);
                     return;
                 }
-                if(tradeCount.getAndIncrement() > CoinTradeContext.OKCOIN_TRADE_MAX) {
+                if(tradeCount.getAndIncrement() >= CoinTradeContext.OKCOIN_TRADE_MAX) {
+                    logger.info("OK coin reach max count {}, return", tradeCount.get());
                     return;
                 }
                 String orderId = okCoinTradeClient.createEthOrder(trade.getPrice(), trade.getAmount(), trade.getAction());

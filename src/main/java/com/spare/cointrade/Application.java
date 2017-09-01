@@ -7,6 +7,8 @@ import com.spare.cointrade.actor.trade.HuobiTrader;
 import com.spare.cointrade.actor.trade.OkCoinTrader;
 import com.spare.cointrade.actor.trade.TradeJudge;
 import com.spare.cointrade.model.trade.HuobiTrade;
+import com.spare.cointrade.realtime.huobi.HuobiClient;
+import com.spare.cointrade.realtime.okcoin.OkcoinClient;
 import com.spare.cointrade.util.AkkaContext;
 import com.spare.cointrade.util.ApplicationContextHolder;
 import com.spare.cointrade.util.SpringExtension;
@@ -62,6 +64,8 @@ public class Application {
                 ApplicationContextHolder.putBean(beanName.toUpperCase(), ctx.getBean(beanName));
             }
             initActor();
+            ApplicationContextHolder.getBean(HuobiClient.class).startFetch();
+            ApplicationContextHolder.getBean(OkcoinClient.class).startFetch();
         };
     }
 

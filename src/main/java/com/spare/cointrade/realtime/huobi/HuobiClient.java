@@ -15,7 +15,7 @@ public class HuobiClient {
     private static Logger logger = LoggerFactory.getLogger(HuobiClient.class);
 
 
-    @PostConstruct
+//    @PostConstruct
     public void startFetch() {
         try {
             WebSocketUtils.executeWebSocket();

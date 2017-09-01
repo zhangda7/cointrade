@@ -10,7 +10,7 @@ import javax.annotation.PostConstruct;
 @Component
 public class OkcoinClient {
 
-    @PostConstruct
+//    @PostConstruct
     public void startFetch() {
         // 国际站WebSocket地址 注意如果访问国内站 请将 real.okcoin.com 改为 real.okcoin.cn
         String url = "wss://real.okcoin.cn:10440/websocket/okcoinapi";

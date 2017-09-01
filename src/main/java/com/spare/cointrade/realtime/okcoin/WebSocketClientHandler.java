@@ -1,5 +1,9 @@
 package com.spare.cointrade.realtime.okcoin;
 
+import akka.actor.ActorRef;
+import akka.actor.ActorSelection;
+import com.spare.cointrade.model.depth.OkcoinDepth;
+import com.spare.cointrade.util.AkkaContext;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufInputStream;
 import io.netty.channel.*;
@@ -21,10 +25,20 @@ public class WebSocketClientHandler extends SimpleChannelInboundHandler<Object> 
     private ChannelPromise handshakeFuture;
     private MoniterTask moniter;
     private WebSocketService service ;
+
+    private ActorSelection tradeJudge;
+
     public WebSocketClientHandler(WebSocketClientHandshaker handshaker,WebSocketService service,MoniterTask moniter) {
         this.handshaker = handshaker;
         this.service = service;
         this.moniter = moniter;
+        this.tradeJudge = AkkaContext.getSystem().actorSelection("akka://rootSystem/user/tradeJudge");
+    }
+
+    private void sendClearMsg() {
+        OkcoinDepth depth = new OkcoinDepth();
+        depth.setClear(true);
+        this.tradeJudge.tell(depth, ActorRef.noSender());
     }
 
     public ChannelFuture handshakeFuture() {
@@ -44,6 +58,7 @@ public class WebSocketClientHandler extends SimpleChannelInboundHandler<Object> 
     @Override
     public void channelInactive(ChannelHandlerContext ctx) {
         logger.info("WebSocket Client disconnected!");
+        sendClearMsg();
     }
 
     @Override
@@ -53,6 +68,7 @@ public class WebSocketClientHandler extends SimpleChannelInboundHandler<Object> 
         if (!handshaker.isHandshakeComplete()) {
             handshaker.finishHandshake(ch, (FullHttpResponse) msg);
             logger.info("WebSocket Client connected!");
+            sendClearMsg();
             handshakeFuture.setSuccess();
             return;
         }

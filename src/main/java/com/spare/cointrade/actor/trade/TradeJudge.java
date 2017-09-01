@@ -270,6 +270,12 @@ public class TradeJudge extends AbstractActor {
         if(depth == null) {
             return;
         }
+        if(depth.isClear()) {
+            logger.info("Begin clear okcoin cache data");
+            okCoinAsksDepth.clear();
+            okCoinBidsDepth.clear();
+            return;
+        }
         tsOfOkCoin = depth.getTimestamp();
         curStatus.setOkCoinDate(new Date(tsOfOkCoin));
         if(depth.getAsks() != null) {

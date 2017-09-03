@@ -110,7 +110,10 @@ public class WebSocketUtils extends WebSocketClient {
 
 	@Override
 	public void onClose(int code, String reason, boolean remote) {
-		System.out.println("关流--Connection closed by " + (remote ? "remote peer" : "us"));
+		HuobiDepth huobiDepth = new HuobiDepth();
+		huobiDepth.setClear(true);
+		tradeSel.tell(huobiDepth, ActorRef.noSender());
+		logger.warn("关流--Connection closed by " + (remote ? "remote peer" : "us"));
 	}
 
 	@Override

@@ -8,6 +8,11 @@ import lombok.Data;
 @Data
 public class HuobiDepth {
 
+    /**
+     * 是否要清空原有数据，适用于断开重连
+     */
+    boolean clear;
+
     private String ch;
 
     private Long ts;

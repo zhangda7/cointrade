@@ -50,7 +50,7 @@ public class OkCoinTrader extends AbstractActor {
                     logger.info("OK coin trade status is {}, return", CoinTradeContext.DO_TRADE);
                     return;
                 }
-                if(tradeCount.getAndIncrement() >= CoinTradeContext.OKCOIN_TRADE_MAX) {
+                if(CoinTradeContext.OKCOIN_TRADE_MAX > 0 && tradeCount.getAndIncrement() >= CoinTradeContext.OKCOIN_TRADE_MAX) {
                     logger.info("OK coin reach max count {}, return", tradeCount.get());
                     return;
                 }

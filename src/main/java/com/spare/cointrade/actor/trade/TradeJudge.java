@@ -43,6 +43,8 @@ public class TradeJudge extends AbstractActor {
 
     public static CurStatus curStatus = new CurStatus();
 
+    private Long lastTradeTs = 0L;
+
     public TradeJudge() {
         huobiBidsDepth = new TreeMap<>(new Comparator<Double>() {
             @Override
@@ -147,13 +149,16 @@ public class TradeJudge extends AbstractActor {
         curStatus.setOkcoinBuy1(okCoinBuy1);
         curStatus.setOkcoinSell1(okCoinSell1);
 
-        Double minAmount = Math.min(curStatus.getHuobiAccount().getCoinAmount(), curStatus.getOkCoinAccount().getCoinAmount());
+//        Double minAmount = Math.min(curStatus.getHuobiAccount().getCoinAmount(), curStatus.getOkCoinAccount().getCoinAmount());
 
         //TODO 应该保存一下上次的状态，如果第一个价格发生了变化，才会再次去交易的
         if(huobiBuy1.getPrice() - okCoinSell1.getPrice() > maxBuy1Ratio) {
             // sell huobi
             //TODO 还需增加是否超出自身余额的判断
             //TODO 相同的触发后，不能重复交易的。自己把对应的数目减掉就好了
+
+            Double minAmount = curStatus.getHuobiAccount().getCoinAmount();
+
             Double amount = Math.min(huobiBuy1.getAmount(), okCoinSell1.getAmount());
 
             amount = Math.min(amount, CoinTradeContext.MAX_TRADE_AMOUNT);
@@ -165,8 +170,13 @@ public class TradeJudge extends AbstractActor {
                 return;
             }
 
-            if(tradeCount1.getAndIncrement() >= CoinTradeContext.OKCOIN_TRADE_MAX) {
+            if(CoinTradeContext.OKCOIN_TRADE_MAX > 0 && tradeCount1.getAndIncrement() >= CoinTradeContext.OKCOIN_TRADE_MAX) {
                 logger.info("count 1 reach max count {}, return", tradeCount1.get());
+                return;
+            }
+
+            if(System.currentTimeMillis() - lastTradeTs < 1000) {
+                logger.info("trade too fast, return");
                 return;
             }
 
@@ -194,6 +204,8 @@ public class TradeJudge extends AbstractActor {
             curStatus.getOkCoinAccount().setMoney(curStatus.getOkCoinAccount().getMoney() - okCoinSell1.getPrice() * amount);
 
 
+            lastTradeTs = System.currentTimeMillis();
+
             huobiTraderActor.tell(huobiTrade, ActorRef.noSender());
             okCoinTraderActor.tell(okCoinTrade, ActorRef.noSender());
 
@@ -209,6 +221,9 @@ public class TradeJudge extends AbstractActor {
         } else if(okCoinBuy1.getPrice() - huobiSell1.getPrice() > maxBuy2Ratio) {
             // sell huobi
             //TODO 还需增加是否超出自身余额的判断
+
+            Double minAmount = curStatus.getOkCoinAccount().getCoinAmount();
+
             Double amount = Math.min(okCoinBuy1.getAmount(), huobiSell1.getAmount());
 
             amount = Math.min(amount, CoinTradeContext.MAX_TRADE_AMOUNT);
@@ -220,8 +235,13 @@ public class TradeJudge extends AbstractActor {
                 return;
             }
 
-            if(tradeCount2.getAndIncrement() >= CoinTradeContext.OKCOIN_TRADE_MAX) {
+            if( CoinTradeContext.OKCOIN_TRADE_MAX > 0 && tradeCount2.getAndIncrement() >= CoinTradeContext.OKCOIN_TRADE_MAX) {
                 logger.info("count 2 reach max count {}, return", tradeCount2.get());
+                return;
+            }
+
+            if(System.currentTimeMillis() - lastTradeTs < 1000) {
+                logger.info("trade too fast, return");
                 return;
             }
 
@@ -248,6 +268,7 @@ public class TradeJudge extends AbstractActor {
             curStatus.getOkCoinAccount().setCoinAmount(curStatus.getOkCoinAccount().getCoinAmount() - amount);
             curStatus.getOkCoinAccount().setMoney(curStatus.getOkCoinAccount().getMoney() + okCoinBuy1.getPrice() * amount);
 
+            lastTradeTs = System.currentTimeMillis();
 
             huobiTraderActor.tell(huobiTrade, ActorRef.noSender());
             okCoinTraderActor.tell(okCoinTrade, ActorRef.noSender());
@@ -309,6 +330,14 @@ public class TradeJudge extends AbstractActor {
         if(depth.getTick() == null) {
             return;
         }
+
+        if(depth.isClear()) {
+            logger.info("Begin clear huobi cache data");
+            huobiAsksDepth.clear();
+            huobiBidsDepth.clear();
+            return;
+        }
+
         //因为火币网每次都发送的是全量消息，所以每次先clear掉了
 //        logger.info("Huobi Ask : {}", huobiAsksDepth.firstEntry());
 //        logger.info("Huobi Bid : {}", huobiBidsDepth.lastEntry());

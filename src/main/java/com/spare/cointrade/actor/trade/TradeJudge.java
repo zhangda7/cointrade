@@ -142,8 +142,11 @@ public class TradeJudge extends AbstractActor {
 //        logger.info("[1] Buy delta {}, service charge {}", huobiBuy1.getPrice() - okCoinSell1.getPrice(), maxBuy1Ratio);
 //        logger.info("[2] Buy delta {}, service charge {}", okCoinBuy1.getPrice() - huobiSell1.getPrice(), maxBuy2Ratio);
 
+
         curStatus.setDelta1(huobiBuy1.getPrice() - okCoinSell1.getPrice());
         curStatus.setDelta2(okCoinBuy1.getPrice() - huobiSell1.getPrice());
+
+        //这个赋值应该在parse的时候进行
         curStatus.setHuobiBuy1(huobiBuy1);
         curStatus.setHuobiSell1(huobiSell1);
         curStatus.setOkcoinBuy1(okCoinBuy1);

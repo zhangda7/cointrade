@@ -8,6 +8,8 @@ import lombok.Data;
 @Data
 public class TradeDepth {
 
+    TradeSource source;
+
     /**
      * BTC, ETH...
      */

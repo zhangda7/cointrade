@@ -12,4 +12,7 @@ public class CoinTradeConstants {
 
     public static final String SYMBOL_ETH = "ETH";
 
+    public static final Double FIX_SERVICE_CHARGE = 0.0021;
+
+
 }

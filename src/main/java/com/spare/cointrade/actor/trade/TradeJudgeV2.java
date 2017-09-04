@@ -103,6 +103,7 @@ public class TradeJudgeV2 extends AbstractActor {
     public Receive createReceive() {
         return receiveBuilder().match(HuobiDepth.class, (depth -> {
             try {
+                judgeClearCache();
                 parseHuobi(depth);
             } catch (Exception e) {
                 logger.error("ERROR ", e);
@@ -110,6 +111,7 @@ public class TradeJudgeV2 extends AbstractActor {
             judge();
         })).match(OkcoinDepth.class, (depth) -> {
             try {
+                judgeClearCache();
                 parseOkCoin(depth);
             } catch (Exception e) {
                 logger.error("ERROR ", e);
@@ -118,31 +120,80 @@ public class TradeJudgeV2 extends AbstractActor {
         }).build();
     }
 
+    private void judgeClearCache() {
+        long curTs = System.currentTimeMillis();
+
+        if(curStatus.getHuobiDate() != null && curTs - curStatus.getHuobiDate().getTime() > 7000) {
+            logger.warn("Begin clear huobi cache data");
+            huobiBidsDepth.clear();
+            huobiAsksDepth.clear();
+        } else if(curStatus.getOkCoinDate() != null && curTs - curStatus.getOkCoinDate().getTime() > 7000) {
+            logger.warn("Begin clear okcoin cache data");
+            okCoinBidsDepth.clear();
+            okCoinAsksDepth.clear();
+        }
+    }
+
     public void judge() {
 
         List<TradeInfo> tradeInfoList = buy2Sell2Policy.canTrade(huobiBidsDepth, huobiAsksDepth,
                 okCoinBidsDepth, okCoinAsksDepth,
-                curStatus.getHuobiAccount().getCoinAmount(), curStatus.getOkCoinAccount().getCoinAmount());
+                curStatus.getHuobiAccount(), curStatus.getOkCoinAccount());
 
         if(tradeInfoList == null) {
             return;
         }
 
+        Double huobiCoinDelta = 0.0;
+        Double huobiMoenyDelta = 0.0;
+
+        Double okcoinCoinDelta = 0.0;
+        Double okcoinMoneyDelta = 0.0;
+
         for (TradeInfo tradeInfo :tradeInfoList) {
             if(tradeInfo.getSource().equals(TradeSource.HUOBI)) {
                 if(tradeInfo.getAction().equals(TradeAction.BUY)) {
-
+                    huobiCoinDelta += tradeInfo.getAmount();
+                    huobiMoenyDelta -= tradeInfo.getAmount() * tradeInfo.getPrice();
                 } else if(tradeInfo.getAction().equals(TradeAction.SELL)) {
-
+                    huobiCoinDelta -= tradeInfo.getAmount();
+                    huobiMoenyDelta += tradeInfo.getAmount() * tradeInfo.getPrice();
                 }
+                huobiTraderActor.tell(tradeInfo, ActorRef.noSender());
             } else if(tradeInfo.getSource().equals(TradeSource.OKCOIN)) {
                 if(tradeInfo.getAction().equals(TradeAction.BUY)) {
-
+                    okcoinCoinDelta += tradeInfo.getAmount();
+                    okcoinMoneyDelta -= tradeInfo.getAmount() * tradeInfo.getPrice();
                 } else if(tradeInfo.getAction().equals(TradeAction.SELL)) {
-
+                    okcoinCoinDelta += tradeInfo.getAmount();
+                    okcoinMoneyDelta -= tradeInfo.getAmount() * tradeInfo.getPrice();
                 }
+                okCoinTraderActor.tell(tradeInfo, ActorRef.noSender());
             }
         }
+
+
+        curStatus.getHuobiAccount().setCoinAmount(curStatus.getHuobiAccount().getCoinAmount() + huobiCoinDelta);
+        curStatus.getHuobiAccount().setMoney(curStatus.getHuobiAccount().getMoney() + huobiMoenyDelta);
+
+        curStatus.getOkCoinAccount().setCoinAmount(curStatus.getOkCoinAccount().getCoinAmount() + okcoinCoinDelta);
+        curStatus.getOkCoinAccount().setMoney(curStatus.getOkCoinAccount().getMoney() + okcoinMoneyDelta);
+
+
+        lastTradeTs = System.currentTimeMillis();
+
+//        huobiTraderActor.tell(huobiTrade, ActorRef.noSender());
+//        okCoinTraderActor.tell(okCoinTrade, ActorRef.noSender());
+
+        //update data
+//        huobiBuy1.setAmount(huobiBuy1.getAmount() - amount);
+//        if(huobiBuy1.getAmount() == 0) {
+//            huobiBidsDepth.remove(huobiBuy1.getPrice());
+//        }
+//        okCoinSell1.setAmount(okCoinSell1.getAmount() - amount);
+//        if(okCoinSell1.getAmount() == 0) {
+//            okCoinAsksDepth.remove(okCoinSell1.getPrice());
+//        }
 
     }
 

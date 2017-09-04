@@ -5,6 +5,7 @@ import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.alibaba.fastjson.TypeReference;
 import com.spare.cointrade.actor.trade.TradeJudge;
+import com.spare.cointrade.actor.trade.TradeJudgeV2;
 import com.spare.cointrade.model.AccountInfo;
 import com.spare.cointrade.model.HuobiAccount;
 import com.spare.cointrade.model.HuobiSubAccount;
@@ -89,6 +90,8 @@ public class OkCoinTradeClient {
         accountInfo.setMoney(okCoinAccountFree.getCny());
 
         TradeJudge.curStatus.setOkCoinAccount(accountInfo);
+        TradeJudgeV2.curStatus.setOkCoinAccount(accountInfo);
+
     }
 
     /**

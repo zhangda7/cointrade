@@ -1,6 +1,7 @@
 package com.spare.cointrade.trade.huobi;
 
 import com.spare.cointrade.actor.trade.TradeJudge;
+import com.spare.cointrade.actor.trade.TradeJudgeV2;
 import com.spare.cointrade.model.AccountInfo;
 import com.spare.cointrade.model.HuobiAccount;
 import com.spare.cointrade.model.HuobiSubAccount;
@@ -76,6 +77,8 @@ public class HuobiTradeClient {
             }
         }
         TradeJudge.curStatus.setHuobiAccount(accountInfo);
+        TradeJudgeV2.curStatus.setHuobiAccount(accountInfo);
+
     }
 
 //    public String createEtcOrder(Double amount, Double price, TradeAction action) {

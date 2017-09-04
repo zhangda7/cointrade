@@ -5,7 +5,7 @@ package com.spare.cointrade.util;
  */
 public class CoinTradeContext {
 
-    public static final boolean DO_TRADE = true;
+    public static final boolean DO_TRADE = false;
 
     public static final double MAX_TRADE_AMOUNT = 0.05;
 

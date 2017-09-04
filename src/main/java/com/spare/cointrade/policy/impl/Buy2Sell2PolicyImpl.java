@@ -1,5 +1,6 @@
 package com.spare.cointrade.policy.impl;
 
+import com.spare.cointrade.actor.trade.TradeJudgeV2;
 import com.spare.cointrade.model.*;
 import com.spare.cointrade.util.CoinTradeConstants;
 import com.spare.cointrade.util.CoinTradeContext;
@@ -22,8 +23,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class Buy2Sell2PolicyImpl {
 
     private static Logger logger = LoggerFactory.getLogger(Buy2Sell2PolicyImpl.class);
-
-    public static CurStatus curStatus = new CurStatus();
 
     private AtomicInteger tradeCount = new AtomicInteger(0);
 
@@ -76,13 +75,13 @@ public class Buy2Sell2PolicyImpl {
 
         double maxBuy2Ratio = Math.max(huobiSell2.getPrice(), okCoinBuy2.getPrice()) * CoinTradeConstants.FIX_SERVICE_CHARGE * 2; // buy , sell, so * 2
 
-        curStatus.setDelta1(huobiBuy2.getPrice() - okCoinSell2.getPrice());
-        curStatus.setDelta2(okCoinBuy2.getPrice() - huobiSell2.getPrice());
+        TradeJudgeV2.curStatus.setDelta1(huobiBuy2.getPrice() - okCoinSell2.getPrice());
+        TradeJudgeV2.curStatus.setDelta2(okCoinBuy2.getPrice() - huobiSell2.getPrice());
         //这个赋值应该在parse的时候进行
-        curStatus.setHuobiBuy1(huobiBuy2);
-        curStatus.setHuobiSell1(huobiSell2);
-        curStatus.setOkcoinBuy1(okCoinBuy2);
-        curStatus.setOkcoinSell1(okCoinSell2);
+        TradeJudgeV2.curStatus.setHuobiBuy1(huobiBuy2);
+        TradeJudgeV2.curStatus.setHuobiSell1(huobiSell2);
+        TradeJudgeV2.curStatus.setOkcoinBuy1(okCoinBuy2);
+        TradeJudgeV2.curStatus.setOkcoinSell1(okCoinSell2);
 
         List<TradeInfo> tradeInfoList = null;
 

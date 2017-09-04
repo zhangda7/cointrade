@@ -6,6 +6,7 @@ import akka.actor.ActorSelection;
 import akka.actor.Props;
 import com.spare.cointrade.actor.minitor.HuobiTradeMonitor;
 import com.spare.cointrade.model.TradeAction;
+import com.spare.cointrade.model.TradeInfo;
 import com.spare.cointrade.model.trade.HuobiTrade;
 import com.spare.cointrade.trade.huobi.ApiException;
 import com.spare.cointrade.trade.huobi.HuobiTradeClient;
@@ -40,7 +41,7 @@ public class HuobiTrader extends AbstractActor {
 
     @Override
     public Receive createReceive() {
-        return receiveBuilder().match(HuobiTrade.class, trade -> {
+        return receiveBuilder().match(TradeInfo.class, trade -> {
             if(huobiTradeClient == null) {
                 huobiTradeClient = ApplicationContextHolder.getBean(HuobiTradeClient.class);
             }
@@ -61,11 +62,11 @@ public class HuobiTrader extends AbstractActor {
                 String orderId = huobiTradeClient.createEthOrder(trade.getAmount(), trade.getPrice(), trade.getAction());
                 trade.setOrderId(orderId);
                 logger.info("Order is is {} for {}", orderId, trade);
-                HuobiTradeMonitor.getTobeConfirmedTradeQueue().add(trade);
+//                HuobiTradeMonitor.getTobeConfirmedTradeQueue().add(trade);
             } catch (ApiException e) {
                 trade.setAction(TradeAction.FAIL);
                 trade.setComment(e.getMessage());
-                HuobiTradeMonitor.getTobeConfirmedTradeQueue().add(trade);
+//                HuobiTradeMonitor.getTobeConfirmedTradeQueue().add(trade);
             }
             catch (Exception e) {
                 logger.error("ERROR on handle {}", trade, e);

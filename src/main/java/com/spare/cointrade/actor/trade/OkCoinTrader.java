@@ -5,6 +5,7 @@ import akka.actor.Props;
 import com.spare.cointrade.actor.minitor.HuobiTradeMonitor;
 import com.spare.cointrade.actor.minitor.OkCoinTradeMonitor;
 import com.spare.cointrade.model.TradeAction;
+import com.spare.cointrade.model.TradeInfo;
 import com.spare.cointrade.model.trade.HuobiTrade;
 import com.spare.cointrade.model.trade.OkCoinTrade;
 import com.spare.cointrade.trade.huobi.ApiException;
@@ -35,7 +36,7 @@ public class OkCoinTrader extends AbstractActor {
 
     @Override
     public AbstractActor.Receive createReceive() {
-        return receiveBuilder().match(OkCoinTrade.class, trade -> {
+        return receiveBuilder().match(TradeInfo.class, trade -> {
             if(okCoinTradeClient == null) {
                 okCoinTradeClient = ApplicationContextHolder.getBean(OkCoinTradeClient.class);
             }
@@ -57,11 +58,11 @@ public class OkCoinTrader extends AbstractActor {
                 String orderId = okCoinTradeClient.createEthOrder(trade.getPrice(), trade.getAmount(), trade.getAction());
                 trade.setOrderId(orderId);
                 logger.info("Order is is {} for {}", orderId, trade);
-                OkCoinTradeMonitor.getTobeConfirmedTradeQueue().add(trade);
+//                OkCoinTradeMonitor.getTobeConfirmedTradeQueue().add(trade);
             } catch (ApiException e) {
                 trade.setAction(TradeAction.FAIL);
                 trade.setComment(e.getMessage());
-                OkCoinTradeMonitor.getTobeConfirmedTradeQueue().add(trade);
+//                OkCoinTradeMonitor.getTobeConfirmedTradeQueue().add(trade);
             }
             catch (Exception e) {
                 logger.error("ERROR on handle {}", trade, e);

@@ -6,6 +6,7 @@ import com.spare.cointrade.actor.minitor.HuobiTradeMonitor;
 import com.spare.cointrade.actor.trade.HuobiTrader;
 import com.spare.cointrade.actor.trade.OkCoinTrader;
 import com.spare.cointrade.actor.trade.TradeJudge;
+import com.spare.cointrade.actor.trade.TradeJudgeV2;
 import com.spare.cointrade.model.trade.HuobiTrade;
 import com.spare.cointrade.realtime.huobi.HuobiClient;
 import com.spare.cointrade.realtime.okcoin.OkcoinClient;
@@ -31,7 +32,8 @@ public class Application {
     private ApplicationContext applicationContext;
 
     private static void initActor() {
-        AkkaContext.getSystem().actorOf(TradeJudge.props(), "tradeJudge");
+//        AkkaContext.getSystem().actorOf(TradeJudge.props(), "tradeJudge");
+        AkkaContext.getSystem().actorOf(TradeJudgeV2.props(), "tradeJudge");
         AkkaContext.getSystem().actorOf(HuobiTrader.props(), "huobiTrader");
         AkkaContext.getSystem().actorOf(HuobiConsumer.props(), "huobiConsumer");
 //        AkkaContext.getSystem().actorOf(HuobiTradeMonitor.props(), "huobiTradeMonitor");

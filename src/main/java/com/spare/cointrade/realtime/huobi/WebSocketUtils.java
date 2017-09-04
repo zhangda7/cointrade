@@ -105,7 +105,7 @@ public class WebSocketUtils extends WebSocketClient {
 	}
 
 	public void onFragment(Framedata fragment) {
-		System.out.println("片段--received fragment: " + new String(fragment.getPayloadData().array()));
+		logger.info("片段--received fragment: " + new String(fragment.getPayloadData().array()));
 	}
 
 	@Override

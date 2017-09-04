@@ -102,6 +102,7 @@ public class TradeJudge extends AbstractActor {
     public Receive createReceive() {
         return receiveBuilder().match(HuobiDepth.class, (depth -> {
             try {
+                judgeClearCache();
                 parseHuobi(depth);
             } catch (Exception e) {
                 logger.error("ERROR ", e);
@@ -109,12 +110,27 @@ public class TradeJudge extends AbstractActor {
             judge();
         })).match(OkcoinDepth.class, (depth) -> {
             try {
+                judgeClearCache();
                 parseOkCoin(depth);
             } catch (Exception e) {
                 logger.error("ERROR ", e);
             }
             judge();
         }).build();
+    }
+
+    private void judgeClearCache() {
+        long curTs = System.currentTimeMillis();
+
+        if(curStatus.getHuobiDate() != null && curTs - curStatus.getHuobiDate().getTime() > 7000) {
+            logger.warn("Begin clear huobi cache data");
+            huobiBidsDepth.clear();
+            huobiAsksDepth.clear();
+        } else if(curStatus.getOkCoinDate() != null && curTs - curStatus.getOkCoinDate().getTime() > 7000) {
+            logger.warn("Begin clear okcoin cache data");
+            okCoinBidsDepth.clear();
+            okCoinAsksDepth.clear();
+        }
     }
 
     public void judge() {

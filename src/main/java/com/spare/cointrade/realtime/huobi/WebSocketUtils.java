@@ -181,6 +181,10 @@ public class WebSocketUtils extends WebSocketClient {
 //		executorService.scheduleWithFixedDelay(new TimerSend(), 1,1, TimeUnit.SECONDS);
 //		Thread.currentThread().join();
 		// WebSocketImpl.DEBUG = true;
+		if(chatclient != null) {
+			chatclient.close();
+			chatclient = null;
+		}
 		chatclient = new WebSocketUtils(new URI(url), getWebSocketHeaders(), 1000);
 		trustAllHosts(chatclient);
 		chatclient.connectBlocking();

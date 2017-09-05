@@ -10,7 +10,9 @@ import com.spare.cointrade.model.depth.OkcoinDepth;
 import com.spare.cointrade.model.trade.HuobiTrade;
 import com.spare.cointrade.model.trade.OkCoinTrade;
 import com.spare.cointrade.policy.impl.Buy2Sell2PolicyImpl;
+import com.spare.cointrade.realtime.huobi.HuobiClient;
 import com.spare.cointrade.util.AkkaContext;
+import com.spare.cointrade.util.ApplicationContextHolder;
 import com.spare.cointrade.util.CoinTradeContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,6 +44,8 @@ public class TradeJudgeV2 extends AbstractActor {
     private Buy2Sell2PolicyImpl buy2Sell2Policy;
 
     public static CurStatus curStatus = new CurStatus();
+
+    private AtomicInteger huobiNoDataCount = new AtomicInteger(0);
 
     private Long lastTradeTs = 0L;
 
@@ -127,6 +131,11 @@ public class TradeJudgeV2 extends AbstractActor {
             logger.warn("Begin clear huobi cache data");
             huobiBidsDepth.clear();
             huobiAsksDepth.clear();
+            if(huobiNoDataCount.getAndIncrement() >= 10) {
+                huobiNoDataCount.set(0);
+                logger.warn("Restart huobi client");
+                ApplicationContextHolder.getBean(HuobiClient.class).startFetch();
+            }
         } else if(curStatus.getOkCoinDate() != null && curTs - curStatus.getOkCoinDate().getTime() > 7000) {
             logger.warn("Begin clear okcoin cache data");
             okCoinBidsDepth.clear();

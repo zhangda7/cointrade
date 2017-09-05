@@ -189,7 +189,7 @@ public class TradeJudge extends AbstractActor {
                 return;
             }
 
-            if(CoinTradeContext.OKCOIN_TRADE_MAX > 0 && tradeCount1.getAndIncrement() >= CoinTradeContext.OKCOIN_TRADE_MAX) {
+            if(CoinTradeContext.MAX_TRADE_COUNT > 0 && tradeCount1.getAndIncrement() >= CoinTradeContext.MAX_TRADE_COUNT) {
                 logger.info("count 1 reach max count {}, return", tradeCount1.get());
                 return;
             }
@@ -254,7 +254,7 @@ public class TradeJudge extends AbstractActor {
                 return;
             }
 
-            if( CoinTradeContext.OKCOIN_TRADE_MAX > 0 && tradeCount2.getAndIncrement() >= CoinTradeContext.OKCOIN_TRADE_MAX) {
+            if( CoinTradeContext.MAX_TRADE_COUNT > 0 && tradeCount2.getAndIncrement() >= CoinTradeContext.MAX_TRADE_COUNT) {
                 logger.info("count 2 reach max count {}, return", tradeCount2.get());
                 return;
             }

@@ -55,7 +55,7 @@ public class HuobiTrader extends AbstractActor {
                 if(!CoinTradeContext.DO_TRADE) {
                     return;
                 }
-                if( CoinTradeContext.HUOBI_TRADE_MAX > 0 && tradeCount.getAndIncrement() >= CoinTradeContext.HUOBI_TRADE_MAX) {
+                if( CoinTradeContext.MAX_TRADE_COUNT > 0 && tradeCount.getAndIncrement() >= CoinTradeContext.MAX_TRADE_COUNT) {
                     logger.info("Reach max huobi trade count");
                     return;
                 }

@@ -113,12 +113,16 @@ public class Buy2Sell2PolicyImpl {
 
     }
 
-    private Map.Entry<Double, TradeDepth> indexEntry(Map<Double, TradeDepth> depthMap, int index) {
+    private Map.Entry<Double, TradeDepth> indexEntry(TreeMap<Double, TradeDepth> depthMap, int index) {
         if(depthMap == null) {
             return null;
         }
 
         int i = 0;
+
+        if(depthMap.size() == 1) {
+            return depthMap.firstEntry();
+        }
 
         for (Map.Entry<Double, TradeDepth> entry : depthMap.entrySet()) {
             if(i++ >= index) {
@@ -198,6 +202,7 @@ public class Buy2Sell2PolicyImpl {
         tradeInfos.add(sellTrade);
         tradeInfos.add(buyTrade);
 
+        lastTradeTs = System.currentTimeMillis();
         return tradeInfos;
 
     }

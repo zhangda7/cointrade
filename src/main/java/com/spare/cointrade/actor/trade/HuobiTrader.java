@@ -66,6 +66,8 @@ public class HuobiTrader extends AbstractActor {
             } catch (ApiException e) {
                 trade.setAction(TradeAction.FAIL);
                 trade.setComment(e.getMessage());
+                logger.error("ERROR on huobi coin trade ", e);
+                System.exit(1);
 //                HuobiTradeMonitor.getTobeConfirmedTradeQueue().add(trade);
             }
             catch (Exception e) {

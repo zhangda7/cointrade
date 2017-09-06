@@ -90,10 +90,10 @@ public class Buy2Sell2PolicyImpl {
             if(tradeInfoList == null) {
                 return null;
             }
-            if(huobiBuy2.getAmount() == 0) {
+            if(huobiBuy2.getAmount() <= 0) {
                 huobiBidsDepth.remove(huobiBuy2.getPrice());
             }
-            if(okCoinSell2.getAmount() == 0) {
+            if(okCoinSell2.getAmount() <= 0) {
                 okCoinAsksDepth.remove(okCoinSell2.getPrice());
             }
         } else if(okCoinBuy2.getPrice() - huobiSell2.getPrice() > maxBuy2Ratio) {
@@ -101,10 +101,10 @@ public class Buy2Sell2PolicyImpl {
             if(tradeInfoList == null) {
                 return null;
             }
-            if(huobiSell2.getAmount() == 0) {
+            if(huobiSell2.getAmount() <= 0) {
                 huobiAsksDepth.remove(huobiSell2.getPrice());
             }
-            if(okCoinBuy2.getAmount() == 0) {
+            if(okCoinBuy2.getAmount() <= 0) {
                 okCoinBidsDepth.remove(okCoinBuy2.getPrice());
             }
         }
@@ -150,17 +150,14 @@ public class Buy2Sell2PolicyImpl {
 
         amount = Math.min(amount, sellAccount.getCoinAmount());
 
+        amount = ((int) (amount * 1000)) / 1000.0;
+
         logger.info("Try trade {} [{} {}] [{} {}]", sellAccount.getCoinAmount(),
                 buySource.getPrice(), buySource.getAmount(),
                 sellSource.getPrice(), sellSource.getAmount());
 
         if(amount < 0.0099999) {
             logger.info("Min amount is {} < 0.1, return {} {}", amount, sellAccount.getCoinAmount(), Math.min(buySource.getAmount(), sellSource.getAmount()));
-            return null;
-        }
-
-        if(CoinTradeContext.MAX_TRADE_COUNT > 0 && tradeCount.getAndIncrement() >= CoinTradeContext.MAX_TRADE_COUNT) {
-            logger.info("Trade count reach max count {}, return", tradeCount.get());
             return null;
         }
 
@@ -172,6 +169,11 @@ public class Buy2Sell2PolicyImpl {
         if(buyAccount.getMoney() < sellSource.getPrice() * amount) {
             logger.info("buy source {} money is {}, less than {}, return", buyAccount.getSource(), buyAccount.getMoney(),
                     sellSource.getPrice() * sellSource.getAmount());
+            return null;
+        }
+
+        if(CoinTradeContext.MAX_TRADE_COUNT > 0 && tradeCount.getAndIncrement() >= CoinTradeContext.MAX_TRADE_COUNT) {
+            logger.info("Trade count reach max count {}, return", tradeCount.get());
             return null;
         }
 

@@ -7,9 +7,9 @@ public class CoinTradeContext {
 
     public static final boolean DO_TRADE = true;
 
-    public static final double MAX_TRADE_AMOUNT = 0.02;
+    public static final double MAX_TRADE_AMOUNT = 0.05;
 
-    public static final double MAX_TRADE_COUNT = 3;
+    public static final double MAX_TRADE_COUNT = 8;
 
     public static final int HUOBI_TRADE_MAX = 1;
 

@@ -62,6 +62,8 @@ public class OkCoinTrader extends AbstractActor {
             } catch (ApiException e) {
                 trade.setAction(TradeAction.FAIL);
                 trade.setComment(e.getMessage());
+                logger.error("ERROR on ok coin trade ", e);
+                System.exit(1);
 //                OkCoinTradeMonitor.getTobeConfirmedTradeQueue().add(trade);
             }
             catch (Exception e) {

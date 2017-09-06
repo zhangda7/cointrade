@@ -4,6 +4,7 @@ import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.ActorSelection;
 import akka.actor.Props;
+import akka.japi.pf.FI;
 import com.spare.cointrade.model.*;
 import com.spare.cointrade.model.depth.HuobiDepth;
 import com.spare.cointrade.model.depth.OkcoinDepth;
@@ -14,6 +15,7 @@ import com.spare.cointrade.realtime.huobi.HuobiClient;
 import com.spare.cointrade.util.AkkaContext;
 import com.spare.cointrade.util.ApplicationContextHolder;
 import com.spare.cointrade.util.CoinTradeContext;
+import com.sun.xml.internal.fastinfoset.tools.FI_DOM_Or_XML_DOM_SAX_SAXEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -162,20 +164,20 @@ public class TradeJudgeV2 extends AbstractActor {
         for (TradeInfo tradeInfo :tradeInfoList) {
             if(tradeInfo.getSource().equals(TradeSource.HUOBI)) {
                 if(tradeInfo.getAction().equals(TradeAction.BUY)) {
-                    huobiCoinDelta += tradeInfo.getAmount();
-                    huobiMoenyDelta -= tradeInfo.getAmount() * tradeInfo.getPrice();
+                    huobiCoinDelta += tradeInfo.getAmount() * (1 - FIX_SERVICE_CHARGE);
+                    huobiMoenyDelta -= tradeInfo.getAmount() * tradeInfo.getPrice() * (1 + FIX_SERVICE_CHARGE);
                 } else if(tradeInfo.getAction().equals(TradeAction.SELL)) {
-                    huobiCoinDelta -= tradeInfo.getAmount();
-                    huobiMoenyDelta += tradeInfo.getAmount() * tradeInfo.getPrice();
+                    huobiCoinDelta -= tradeInfo.getAmount() * (1 + FIX_SERVICE_CHARGE);
+                    huobiMoenyDelta += tradeInfo.getAmount() * tradeInfo.getPrice() * (1 - FIX_SERVICE_CHARGE);
                 }
                 huobiTraderActor.tell(tradeInfo, ActorRef.noSender());
             } else if(tradeInfo.getSource().equals(TradeSource.OKCOIN)) {
                 if(tradeInfo.getAction().equals(TradeAction.BUY)) {
-                    okcoinCoinDelta += tradeInfo.getAmount();
-                    okcoinMoneyDelta -= tradeInfo.getAmount() * tradeInfo.getPrice();
+                    okcoinCoinDelta += tradeInfo.getAmount() * (1 - FIX_SERVICE_CHARGE);
+                    okcoinMoneyDelta -= tradeInfo.getAmount() * tradeInfo.getPrice() * (1 + FIX_SERVICE_CHARGE);
                 } else if(tradeInfo.getAction().equals(TradeAction.SELL)) {
-                    okcoinCoinDelta += tradeInfo.getAmount();
-                    okcoinMoneyDelta -= tradeInfo.getAmount() * tradeInfo.getPrice();
+                    okcoinCoinDelta += tradeInfo.getAmount() * (1 - FIX_SERVICE_CHARGE);
+                    okcoinMoneyDelta -= tradeInfo.getAmount() * tradeInfo.getPrice() * (1 + FIX_SERVICE_CHARGE);
                 }
                 okCoinTraderActor.tell(tradeInfo, ActorRef.noSender());
             }

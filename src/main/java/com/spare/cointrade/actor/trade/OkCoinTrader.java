@@ -68,6 +68,8 @@ public class OkCoinTrader extends AbstractActor {
             }
             catch (Exception e) {
                 logger.error("ERROR on handle {}", trade, e);
+                logger.error("ERROR on ok coin trade ", e);
+                System.exit(1);
             }
         }).build();
     }

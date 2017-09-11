@@ -37,7 +37,7 @@ public class TradeJudgeV2 extends AbstractActor {
     private static final Double EXCHANGE_RATE = 6.67191524;
 
     //手续费
-    private static final Double FIX_SERVICE_CHARGE = 0.002;
+    public static final Double FIX_SERVICE_CHARGE = 0.002;
 
     private ActorSelection huobiTraderActor;
 
@@ -176,8 +176,8 @@ public class TradeJudgeV2 extends AbstractActor {
                     okcoinCoinDelta += tradeInfo.getAmount() * (1 - FIX_SERVICE_CHARGE);
                     okcoinMoneyDelta -= tradeInfo.getAmount() * tradeInfo.getPrice() * (1 + FIX_SERVICE_CHARGE);
                 } else if(tradeInfo.getAction().equals(TradeAction.SELL)) {
-                    okcoinCoinDelta += tradeInfo.getAmount() * (1 - FIX_SERVICE_CHARGE);
-                    okcoinMoneyDelta -= tradeInfo.getAmount() * tradeInfo.getPrice() * (1 + FIX_SERVICE_CHARGE);
+                    okcoinCoinDelta -= tradeInfo.getAmount() * (1 + FIX_SERVICE_CHARGE);
+                    okcoinMoneyDelta += tradeInfo.getAmount() * tradeInfo.getPrice() * (1 - FIX_SERVICE_CHARGE);
                 }
                 okCoinTraderActor.tell(tradeInfo, ActorRef.noSender());
             }

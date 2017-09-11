@@ -72,6 +72,8 @@ public class HuobiTrader extends AbstractActor {
             }
             catch (Exception e) {
                 logger.error("ERROR on handle {}", trade, e);
+                logger.error("ERROR on huobi coin trade ", e);
+                System.exit(1);
             }
 
         }).build();

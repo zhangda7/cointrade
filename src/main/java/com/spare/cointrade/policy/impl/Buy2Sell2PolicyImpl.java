@@ -1,5 +1,6 @@
 package com.spare.cointrade.policy.impl;
 
+import com.spare.cointrade.actor.trade.TradeJudge;
 import com.spare.cointrade.actor.trade.TradeJudgeV2;
 import com.spare.cointrade.model.*;
 import com.spare.cointrade.util.CoinTradeConstants;
@@ -132,6 +133,11 @@ public class Buy2Sell2PolicyImpl {
         return null;
     }
 
+    private double scalePrecision(double amount) {
+        double value = ((int) (amount * 10000)) / 10000.0;
+        return value;
+    }
+
     /**
      *
      * @param buyAccount 买方账户
@@ -144,15 +150,22 @@ public class Buy2Sell2PolicyImpl {
 
         long curTs = System.currentTimeMillis();
 
-        Double amount = Math.min(buySource.getAmount(), sellSource.getAmount());
+        final Double SHRINK = 0.1;
+
+        Double amount = Math.min(buySource.getAmount() * SHRINK, sellSource.getAmount() * SHRINK);
 
         amount = Math.min(amount, CoinTradeContext.MAX_TRADE_AMOUNT);
 
         amount = Math.min(amount, sellAccount.getCoinAmount());
 
-        amount = ((int) (amount * 1000)) / 1000.0;
+        if(buyAccount.getMoney() < (sellSource.getPrice() * (1 - TradeJudgeV2.FIX_SERVICE_CHARGE * 2)) * amount) {
+            amount = buyAccount.getMoney() * 1.0 / (sellSource.getPrice() * (1 + TradeJudgeV2.FIX_SERVICE_CHARGE * 2));
+        }
 
-        logger.info("Try trade {} [{} {}] [{} {}]", sellAccount.getCoinAmount(),
+//        amount = ((int) (amount * 1000)) / 1000.0;
+        amount = scalePrecision(amount);
+
+        logger.info("Try trade {} {} [{} {}] [{} {}]", sellAccount.getCoinAmount(), buyAccount.getMoney(),
                 buySource.getPrice(), buySource.getAmount(),
                 sellSource.getPrice(), sellSource.getAmount());
 
@@ -160,6 +173,8 @@ public class Buy2Sell2PolicyImpl {
             logger.info("Min amount is {} < 0.1, return {} {}", amount, sellAccount.getCoinAmount(), Math.min(buySource.getAmount(), sellSource.getAmount()));
             return null;
         }
+
+
 
         if(System.currentTimeMillis() - lastTradeTs < 1000) {
             logger.info("trade too fast, return");
@@ -180,7 +195,21 @@ public class Buy2Sell2PolicyImpl {
         List<TradeInfo> tradeInfos = new ArrayList<>();
 
         TradeInfo sellTrade = new TradeInfo();
-        sellTrade.setAmount(amount);
+//        if(buySource.getSource().equals(TradeSource.OKCOIN)) {
+            //sell okcoin, decrease amount
+        //okcoin交易时用币收取手续费，为了平衡币的数量，所有的卖出交易的amount均要减少
+        if(buySource.getSource().equals(TradeSource.HUOBI)) {
+            sellTrade.setAmount(amount / (1 + TradeJudgeV2.FIX_SERVICE_CHARGE));
+        } else {
+            sellTrade.setAmount(amount);
+        }
+        //三位有效数字
+        sellTrade.setAmount(scalePrecision(sellTrade.getAmount()));
+//        sellTrade.setAmount(((int) (sellTrade.getAmount() * 1000)) / 1000.0);
+//        } else {
+//            sellTrade.setAmount(amount);
+//        }
+
         sellTrade.setPrice(buySource.getPrice());
         sellTrade.setAction(TradeAction.SELL);
         sellTrade.setTs(curTs);

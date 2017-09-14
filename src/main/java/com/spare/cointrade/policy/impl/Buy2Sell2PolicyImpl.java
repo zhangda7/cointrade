@@ -134,7 +134,8 @@ public class Buy2Sell2PolicyImpl {
     }
 
     private double scalePrecision(double amount) {
-        double value = ((int) (amount * 10000)) / 10000.0;
+//        double value = ((int) (amount * 10000)) / 10000.0;
+        double value = ((int) (amount * 1000)) / 1000.0;
         return value;
     }
 
@@ -169,7 +170,7 @@ public class Buy2Sell2PolicyImpl {
                 buySource.getPrice(), buySource.getAmount(),
                 sellSource.getPrice(), sellSource.getAmount());
 
-        if(amount < 0.0099999) {
+        if(amount < 0.0099) {
             logger.info("Min amount is {} < 0.1, return {} {}", amount, sellAccount.getCoinAmount(), Math.min(buySource.getAmount(), sellSource.getAmount()));
             return null;
         }
@@ -198,18 +199,22 @@ public class Buy2Sell2PolicyImpl {
 //        if(buySource.getSource().equals(TradeSource.OKCOIN)) {
             //sell okcoin, decrease amount
         //okcoin交易时用币收取手续费，为了平衡币的数量，所有的卖出交易的amount均要减少
-        if(buySource.getSource().equals(TradeSource.HUOBI)) {
+        //huobi 买入时也要消息币的数目了，所以就统一了
+//        if(buySource.getSource().equals(TradeSource.HUOBI)) {
             sellTrade.setAmount(amount / (1 + TradeJudgeV2.FIX_SERVICE_CHARGE));
-        } else {
-            sellTrade.setAmount(amount);
-        }
+//        } else {
+//            sellTrade.setAmount(amount);
+//        }
         //三位有效数字
         sellTrade.setAmount(scalePrecision(sellTrade.getAmount()));
 //        sellTrade.setAmount(((int) (sellTrade.getAmount() * 1000)) / 1000.0);
 //        } else {
 //            sellTrade.setAmount(amount);
 //        }
-
+        if(sellTrade.getAmount() < 0.01) {
+            logger.info("Min amount is {} < 0.1, return {}", amount, sellTrade.getAmount(), sellTrade.getAmount());
+            return null;
+        }
         sellTrade.setPrice(buySource.getPrice());
         sellTrade.setAction(TradeAction.SELL);
         sellTrade.setTs(curTs);
@@ -218,7 +223,13 @@ public class Buy2Sell2PolicyImpl {
         logger.info("Can trade for {}", sellTrade);
 
         //buy okcoin
+        //huobi buy cost eth amount
         TradeInfo buyTrade = new TradeInfo();
+//        if(sellSource.getSource().equals(TradeSource.HUOBI)) {
+//
+//        } else {
+//            buyTrade.setAmount(amount);
+//        }
         buyTrade.setAmount(amount);
         buyTrade.setPrice(sellSource.getPrice());
         buyTrade.setAction(TradeAction.BUY);

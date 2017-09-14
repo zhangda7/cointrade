@@ -40,6 +40,10 @@ public class MonitorService implements Runnable {
 
     private double totalCoin = 0.0;
 
+    private final int GAP = 20 * 1000;
+
+    private long lastTs = 0;
+
     @PostConstruct
     private void start() {
         scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
@@ -75,6 +79,11 @@ public class MonitorService implements Runnable {
             if(totalCoin != okCoinAccountFree.getEth() + huobiAccountInfo.getCoinAmount()) {
                 totalCoin = okCoinAccountFree.getEth() + huobiAccountInfo.getCoinAmount();
                 print = true;
+            }
+
+            if(System.currentTimeMillis() - lastTs > GAP) {
+                print = true;
+                lastTs = System.currentTimeMillis();
             }
 
             if(print) {

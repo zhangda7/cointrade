@@ -3,6 +3,7 @@ package com.spare.cointrade.policy.impl;
 import com.spare.cointrade.actor.trade.TradeJudge;
 import com.spare.cointrade.actor.trade.TradeJudgeV2;
 import com.spare.cointrade.model.*;
+import com.spare.cointrade.service.CacheService;
 import com.spare.cointrade.util.CoinTradeConstants;
 import com.spare.cointrade.util.CoinTradeContext;
 import org.slf4j.Logger;
@@ -201,12 +202,22 @@ public class Buy2Sell2PolicyImpl {
         //okcoin交易时用币收取手续费，为了平衡币的数量，所有的卖出交易的amount均要减少
         //huobi 买入时也要消息币的数目了，所以就统一了
 //        if(buySource.getSource().equals(TradeSource.HUOBI)) {
+        //0.1497
             sellTrade.setAmount(amount / (1 + TradeJudgeV2.FIX_SERVICE_CHARGE));
 //        } else {
 //            sellTrade.setAmount(amount);
 //        }
         //三位有效数字
-        sellTrade.setAmount(scalePrecision(sellTrade.getAmount()));
+        //0.149
+        double realSellAmount = scalePrecision(sellTrade.getAmount());
+        //0.0007
+        double leftAddAmount = sellTrade.getAmount() - realSellAmount;
+
+        // 0 or 0.001
+        double decreasedAmount = decreaseSellAmountByCache(buySource.getSource().name(), leftAddAmount);
+        //0.148 or 0.149
+        sellTrade.setAmount(realSellAmount - decreasedAmount);
+        logger.info("Real sell amount {}, decreased amount {}", sellTrade.getAmount(), decreasedAmount);
 //        sellTrade.setAmount(((int) (sellTrade.getAmount() * 1000)) / 1000.0);
 //        } else {
 //            sellTrade.setAmount(amount);
@@ -247,6 +258,25 @@ public class Buy2Sell2PolicyImpl {
         lastTradeTs = System.currentTimeMillis();
         return tradeInfos;
 
+    }
+
+    private double decreaseSellAmountByCache(String source, double delta) {
+        if(CacheService.INSTANCE.getServiceChargeCache().get(source) == null) {
+            CacheService.INSTANCE.getServiceChargeCache().put(source, 0.0);
+        }
+
+        double preDelta = CacheService.INSTANCE.getServiceChargeCache().get(source);
+        logger.info("Source {} preDelta {}, current {}", source, preDelta, delta);
+        if(preDelta + delta > 0.001) {
+            logger.info("Can decrease, should update source {} value {}", source, preDelta + delta - 0.001);
+            CacheService.INSTANCE.getServiceChargeCache().put(source, preDelta + delta - 0.001);
+            return 0.001;
+        } else {
+            logger.info("Update Source {} value {}", source, preDelta + delta);
+            CacheService.INSTANCE.getServiceChargeCache().put(source, preDelta + delta);
+        }
+
+        return 0;
     }
 
 }

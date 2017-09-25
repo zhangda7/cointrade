@@ -18,6 +18,7 @@ public class HuobiClient {
 //    @PostConstruct
     public void startFetch() {
         try {
+            WebSocketUtils.closeQuietly();
             WebSocketUtils.executeWebSocket();
         } catch (Exception e) {
             e.printStackTrace();

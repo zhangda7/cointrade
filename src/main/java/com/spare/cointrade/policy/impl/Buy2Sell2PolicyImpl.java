@@ -171,8 +171,8 @@ public class Buy2Sell2PolicyImpl {
                 buySource.getPrice(), buySource.getAmount(),
                 sellSource.getPrice(), sellSource.getAmount());
 
-        if(amount < 0.0099) {
-            logger.info("Min amount is {} < 0.1, return {} {}", amount, sellAccount.getCoinAmount(), Math.min(buySource.getAmount(), sellSource.getAmount()));
+        if(amount < 0.010001) {
+            logger.info("Min amount is {} < 0.0.010001, return {} {}", amount, sellAccount.getCoinAmount(), Math.min(buySource.getAmount(), sellSource.getAmount()));
             return null;
         }
 

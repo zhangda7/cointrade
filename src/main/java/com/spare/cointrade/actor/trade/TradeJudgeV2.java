@@ -133,7 +133,8 @@ public class TradeJudgeV2 extends AbstractActor {
             logger.warn("Begin clear huobi cache data");
             huobiBidsDepth.clear();
             huobiAsksDepth.clear();
-            if(huobiNoDataCount.getAndIncrement() >= 10) {
+            if(huobiNoDataCount.getAndIncrement() >= 1) {
+                curStatus.setHuobiDate(null);
                 huobiNoDataCount.set(0);
                 logger.warn("Restart huobi client");
                 ApplicationContextHolder.getBean(HuobiClient.class).startFetch();

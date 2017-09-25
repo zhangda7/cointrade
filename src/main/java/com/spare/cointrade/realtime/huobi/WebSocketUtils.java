@@ -4,10 +4,10 @@ import akka.actor.ActorRef;
 import akka.actor.ActorSelection;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
-import com.spare.cointrade.actor.consumer.HuobiConsumer;
+//import com.spare.cointrade.actor.consumer.HuobiConsumer;
 import com.spare.cointrade.model.depth.HuobiDepth;
 import com.spare.cointrade.util.AkkaContext;
-import org.java_websocket.client.DefaultSSLWebSocketClientFactory;
+//import org.java_websocket.client.DefaultSSLWebSocketClientFactory;
 import org.java_websocket.client.WebSocketClient;
 import org.java_websocket.drafts.Draft;
 import org.java_websocket.drafts.Draft_17;
@@ -17,6 +17,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
 import java.io.IOException;
@@ -42,11 +43,21 @@ public class WebSocketUtils extends WebSocketClient {
 	private static final String ETH_DEPATH_STEP_TOPIC = "market.ethcny.depth.step0";
 
 
-	private ActorSelection huobiConumser;
+	private static ActorSelection huobiConumser;
 
-	private ActorSelection tradeSel;
+	private static ActorSelection tradeSel;
 
 	private static WebSocketUtils chatclient = null;
+
+	private static void init() {
+		tradeSel = AkkaContext.getSystem().actorSelection("akka://rootSystem/user/tradeJudge");
+		//		tradeJudge = AkkaContext.getSystem().actorSelection("user/tradeJudge").anchor();
+		huobiConumser = AkkaContext.getSystem().actorSelection("akka://rootSystem/user/huobiConsumer");
+	}
+
+	static {
+		init();
+	}
 
 	public WebSocketUtils(URI serverUri, Draft draft) {
 		super(serverUri, draft);
@@ -65,9 +76,9 @@ public class WebSocketUtils extends WebSocketClient {
 		try{
 			logger.info("Huobi client--opened connection");
 //			Future<ActorRef> actorRefFuture = AkkaContext.getSystem().actorSelection("akka://rootSystem/user/tradeJudge").resolveOne(Timeout.apply(5, TimeUnit.SECONDS));
-			tradeSel = AkkaContext.getSystem().actorSelection("akka://rootSystem/user/tradeJudge");
-			//		tradeJudge = AkkaContext.getSystem().actorSelection("user/tradeJudge").anchor();
-			huobiConumser = AkkaContext.getSystem().actorSelection("akka://rootSystem/user/huobiConsumer");
+//			tradeSel = AkkaContext.getSystem().actorSelection("akka://rootSystem/user/tradeJudge");
+//			//		tradeJudge = AkkaContext.getSystem().actorSelection("user/tradeJudge").anchor();
+//			huobiConumser = AkkaContext.getSystem().actorSelection("akka://rootSystem/user/huobiConsumer");
 //		tradeJudge = AkkaContext.getSystem().actorOf(TradeJudge.props(), "tradeJudge");
 		} catch (Exception e) {
 			logger.error("ERROR ", e);
@@ -114,6 +125,24 @@ public class WebSocketUtils extends WebSocketClient {
 		huobiDepth.setClear(true);
 		tradeSel.tell(huobiDepth, ActorRef.noSender());
 		logger.warn("关流--Connection closed by " + (remote ? "remote peer" : "us"));
+//		try {
+//			chatclient.close();
+//		} catch (Exception e) {
+//			logger.error("ERROR on close again ", e);
+//		}
+	}
+
+	public static void closeQuietly() {
+//		HuobiDepth huobiDepth = new HuobiDepth();
+//		huobiDepth.setClear(true);
+//		tradeSel.tell(huobiDepth, ActorRef.noSender());
+//		logger.warn("关流--Connection closed by us");
+//		try {
+//			chatclient.close();
+//			chatclient = null;
+//		} catch (Exception e) {
+//			logger.error("ERROR on close again ", e);
+//		}
 	}
 
 	@Override
@@ -142,39 +171,47 @@ public class WebSocketUtils extends WebSocketClient {
 		try {
 			SSLContext sc = SSLContext.getInstance("TLS");
 			sc.init(null, trustAllCerts, new java.security.SecureRandom());
-			appClient.setWebSocketFactory(new DefaultSSLWebSocketClientFactory(sc));
+//			appClient.setWebSocketFactory(new DefaultSSLWebSocketClientFactory(sc));
+//			sc.init( kmf.getKeyManagers(), tmf.getTrustManagers(), null );
+			// sslContext.init( null, null, null ); // will use java's default key and trust store which is sufficient unless you deal with self-signed certificates
+
+			SSLSocketFactory factory = sc.getSocketFactory();// (SSLSocketFactory) SSLSocketFactory.getDefault();
+
+			chatclient.setSocket( factory.createSocket() );
+
+//			chatclient.connectBlocking();
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
 	}
 
-	static class TimerSend implements Runnable {
-
-		public TimerSend() {
-			try {
-				chatclient = new WebSocketUtils(new URI(url), getWebSocketHeaders(), 1000);
-				trustAllHosts(chatclient);
-
-				chatclient.connectBlocking();
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			} catch (URISyntaxException e) {
-				e.printStackTrace();
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-		}
-
-		@Override
-		public void run() {
-			ReqModel reqModel1 = new ReqModel();
-//			reqModel1.setReq("market.btccny.trade.detail");
-			reqModel1.setReq("market.btccny.detail");
-			reqModel1.setId(10004L);
-			chatclient.send(JSONObject.toJSONString(reqModel1));
-			logger.info("send : " + JSONObject.toJSONString(reqModel1));
-		}
-	}
+//	static class TimerSend implements Runnable {
+//
+//		public TimerSend() {
+//			try {
+//				chatclient = new WebSocketUtils(new URI(url), getWebSocketHeaders(), 1000);
+//				trustAllHosts(chatclient);
+//
+//				chatclient.connectBlocking();
+//			} catch (InterruptedException e) {
+//				e.printStackTrace();
+//			} catch (URISyntaxException e) {
+//				e.printStackTrace();
+//			} catch (IOException e) {
+//				e.printStackTrace();
+//			}
+//		}
+//
+//		@Override
+//		public void run() {
+//			ReqModel reqModel1 = new ReqModel();
+////			reqModel1.setReq("market.btccny.trade.detail");
+//			reqModel1.setReq("market.btccny.detail");
+//			reqModel1.setId(10004L);
+//			chatclient.send(JSONObject.toJSONString(reqModel1));
+//			logger.info("send : " + JSONObject.toJSONString(reqModel1));
+//		}
+//	}
 
 	public static void executeWebSocket() throws Exception {
 //		ScheduledExecutorService executorService = Executors.newScheduledThreadPool(1);

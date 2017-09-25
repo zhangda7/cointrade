@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <!-- encoders are assigned the type
+             ch.qos.logback.classic.encoder.PatternLayoutEncoder by default -->
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} %-5level [%thread] %logger{36}:%line - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>/home/admin/logs/app/cointrade.log</file>
+        <!-- 按天来回滚，如果需要按小时来回滚，则设置为{yyyy-MM-dd_HH} -->
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>/home/admin/logs/app/cointrade.log.%d{yyyy-MM-dd}</fileNamePattern>
+            <!-- 如果按天来回滚，则最大保存时间为maxHistory天，maxHistory天之前的都将被清理掉 -->
+            <maxHistory>10</maxHistory>
+
+
+        </rollingPolicy>
+        <layout class="ch.qos.logback.classic.PatternLayout">
+            <Pattern>%d{HH:mm:ss.SSS} %-5level [%thread] %logger{36}:%line - %msg%n</Pattern>
+        </layout>
+    </appender>
+
+    <!--  异步输出，异步的log片段必须在同步段后面，否则不起作用  -->
+    <appender name="ASYNC_FILE" class="ch.qos.logback.classic.AsyncAppender">
+        <!-- 不丢失日志.默认的,如果队列的80%已满,则会丢弃TRACT、DEBUG、INFO级别的日志 -->
+        <discardingThreshold>0</discardingThreshold>
+        <!-- 更改默认的队列的深度,该值会影响性能.默认值为256 -->
+        <queueSize>256</queueSize>
+        <!-- 添加附加的appender,最多只能添加一个 -->
+        <appender-ref ref="FILE"/>
+    </appender>
+
+    <appender name="MONITOR" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>/home/admin/logs/app/coinmonitor.log</file>
+        <!-- 按天来回滚，如果需要按小时来回滚，则设置为{yyyy-MM-dd_HH} -->
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>/home/admin/logs/app/coinmonitor.log.%d{yyyy-MM-dd}</fileNamePattern>
+            <!-- 如果按天来回滚，则最大保存时间为maxHistory天，maxHistory天之前的都将被清理掉 -->
+            <maxHistory>10</maxHistory>
+
+
+        </rollingPolicy>
+        <layout class="ch.qos.logback.classic.PatternLayout">
+            <Pattern>%d{HH:mm:ss.SSS} %-5level [%thread] %logger{36}:%line - %msg%n</Pattern>
+        </layout>
+    </appender>
+
+    <logger name="com.spare.cointrade.service.MonitorService">
+        <appender-ref ref="MONITOR" /><!--STDOUT绑定到chapters.configuration上，这个logger的祖先是root-->
+    </logger>
+
+    <root level="INFO">
+        <appender-ref ref="ASYNC_FILE" />
+        <appender-ref ref="STDOUT" />
+    </root>
+</configuration>

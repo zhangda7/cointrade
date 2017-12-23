@@ -7,7 +7,7 @@ import lombok.Data;
  * 精确到一个平台的、一对交易币种
  */
 @Data
-public class ListingInfo {
+public class ListingFullInfo {
 
     private TradePlatform tradePlatform;
 

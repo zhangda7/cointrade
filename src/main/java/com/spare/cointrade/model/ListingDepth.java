@@ -5,6 +5,10 @@ import lombok.Data;
 import java.util.PriorityQueue;
 import java.util.concurrent.ConcurrentSkipListMap;
 
+/**
+ * 一个挂单深度信息
+ * 比如买单或卖单
+ */
 @Data
 public class ListingDepth {
 

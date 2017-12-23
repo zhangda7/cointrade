@@ -7,6 +7,7 @@ import java.util.List;
 /**
  * Created by dada on 2017/8/29.
  */
+@Deprecated
 @Data
 public class HuobiAccount {
 

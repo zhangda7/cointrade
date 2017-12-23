@@ -5,6 +5,7 @@ import lombok.Data;
 /**
  * Created by dada on 2017/9/3.
  */
+@Deprecated
 @Data
 public class TradeInfo {
 

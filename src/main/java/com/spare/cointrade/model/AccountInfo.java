@@ -5,6 +5,7 @@ import lombok.Data;
 /**
  * Created by dada on 2017/8/30.
  */
+@Deprecated
 @Data
 public class AccountInfo {
 

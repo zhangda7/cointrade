@@ -62,8 +62,10 @@ public abstract class WebSocketBase {
 		if (channel == null) {
 			return;
 		}
-		String dataMsg = "{'event':'addChannel','channel':'" + channel
-				+ "','binary':'true'}";
+//		String dataMsg = "{'event':'addChannel','channel':'" + channel
+//				+ "','binary':'true'}";
+		String dataMsg = "{'event':'addChannel','channel':'" + channel + "'}";
+		log.info("Send msg {}", dataMsg);
 		this.sendMessage(dataMsg);
 		subscribChannel.add(channel);
 	}

@@ -12,14 +12,15 @@ import org.springframework.test.context.junit4.SpringRunner;
  * Created by dada on 2017/8/20.
  */
 @RunWith(SpringRunner.class)
-@SpringBootTest
+//@SpringBootTest
 public class TestOkCoinClient {
 
-    @Autowired
+//    @Autowired
     OkcoinClient okcoinClient;
 
     @Test
     public void testStart() throws InterruptedException {
+        okcoinClient = new OkcoinClient();
         okcoinClient.startFetch();
 
         Thread.currentThread().join();

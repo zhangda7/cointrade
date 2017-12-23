@@ -31,22 +31,22 @@ public class BuissnesWebSocketServiceImpl implements WebSocketService {
 
 	@Override
 	public void onReceive(String msg) {
-		if(msg.equals("{\"event\":\"pong\"}")) {
-			return;
-		}
-//		log.info("WebSocket Client received message: " + msg);
-		List<OkCoinData> okCoinDataList = JSON.parseObject(msg, type);
-		if(okCoinDataList == null || okCoinDataList.size() == 0) {
-			return;
-		}
-		OkCoinData data = okCoinDataList.get(0);
-		if(! data.getChannel().equals("ok_sub_spot_eth_depth")) {
-			return;
-		}
-		if(okCoinDataList.get(0).getData() instanceof JSONObject) {
-			OkcoinDepth depth = ((JSONObject) okCoinDataList.get(0).getData()).toJavaObject(OkcoinDepth.class);
-			tradeJudge.tell(depth, ActorRef.noSender());
-			//TODO send to ok coin consumer
-		}
+//		if(msg.equals("{\"event\":\"pong\"}")) {
+//			return;
+//		}
+		log.info("WebSocket Client received message: " + msg);
+//		List<OkCoinData> okCoinDataList = JSON.parseObject(msg, type);
+//		if(okCoinDataList == null || okCoinDataList.size() == 0) {
+//			return;
+//		}
+//		OkCoinData data = okCoinDataList.get(0);
+//		if(! data.getChannel().equals("ok_sub_spot_eth_depth")) {
+//			return;
+//		}
+//		if(okCoinDataList.get(0).getData() instanceof JSONObject) {
+//			OkcoinDepth depth = ((JSONObject) okCoinDataList.get(0).getData()).toJavaObject(OkcoinDepth.class);
+//			tradeJudge.tell(depth, ActorRef.noSender());
+//			//TODO send to ok coin consumer
+//		}
 	}
 }

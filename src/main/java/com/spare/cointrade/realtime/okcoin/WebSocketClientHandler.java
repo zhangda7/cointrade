@@ -2,7 +2,7 @@ package com.spare.cointrade.realtime.okcoin;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSelection;
-import com.spare.cointrade.model.depth.OkcoinDepth;
+import com.spare.cointrade.realtime.okcoin.model.OkcoinDepth;
 import com.spare.cointrade.util.AkkaContext;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufInputStream;

@@ -6,26 +6,36 @@ package com.spare.cointrade.model;
 public enum TradeType {
 
     /**
-     * 源是ETH
-     * 使用BTC交易
+     * 合约交易
      */
-    ETH_BTC("ETH", "BTC"),
+    FUTURE_USED,
 
     /**
-     * 源是ETH
-     * 使用CNY交易
+     * 币币交易
      */
-    ETH_CNY("ETH", "CNY");
+    COIN_COIN;
 
-    /**
-     * source
-     */
-    private String source;
-
-    private String target;
-
-    TradeType(String source, String target) {
-        this.source = source;
-        this.target = target;
-    }
+//    /**
+//     * 源是ETH
+//     * 使用BTC交易
+//     */
+//    ETH_BTC("ETH", "BTC"),
+//
+//    /**
+//     * 源是ETH
+//     * 使用CNY交易
+//     */
+//    ETH_CNY("ETH", "CNY");
+//
+//    /**
+//     * source
+//     */
+//    private String source;
+//
+//    private String target;
+//
+//    TradeType(String source, String target) {
+//        this.source = source;
+//        this.target = target;
+//    }
 }

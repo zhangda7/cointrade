@@ -1,4 +1,4 @@
-package com.spare.cointrade.actor.minitor;
+package com.spare.cointrade.actor.monitor;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.spare.cointrade.dao.TradeEventMongoDao;

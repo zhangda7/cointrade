@@ -5,7 +5,7 @@ import com.alibaba.fastjson.JSONObject;
 import com.alibaba.fastjson.TypeReference;
 import com.spare.cointrade.model.depth.HuobiDepth;
 import com.spare.cointrade.model.OkCoinData;
-import com.spare.cointrade.model.depth.OkcoinDepth;
+import com.spare.cointrade.realtime.okcoin.model.OkcoinDepth;
 import org.junit.Test;
 
 import java.lang.reflect.Type;

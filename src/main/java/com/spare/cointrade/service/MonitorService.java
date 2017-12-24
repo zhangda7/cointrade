@@ -2,14 +2,12 @@ package com.spare.cointrade.service;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
-import com.spare.cointrade.actor.minitor.OkCoinTradeMonitor;
 import com.spare.cointrade.model.AccountInfo;
 import com.spare.cointrade.model.HuobiAccount;
 import com.spare.cointrade.model.HuobiSubAccount;
 import com.spare.cointrade.model.okcoin.OkCoinAccountFree;
 import com.spare.cointrade.trade.huobi.HuobiTradeClient;
 import com.spare.cointrade.trade.okcoin.OkCoinTradeClient;
-import com.spare.cointrade.util.CoinTradeConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;

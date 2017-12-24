@@ -27,4 +27,5 @@ public class ListingFullInfo {
      */
     private ListingDepth sellDepth;
 
+    private Long timestamp;
 }

@@ -2,16 +2,16 @@ package com.spare.cointrade;
 
 import akka.actor.ActorSystem;
 import com.spare.cointrade.actor.consumer.HuobiConsumer;
-import com.spare.cointrade.actor.minitor.HuobiTradeMonitor;
+import com.spare.cointrade.actor.monitor.ListingInfoMonitor;
 import com.spare.cointrade.actor.trade.HuobiTrader;
 import com.spare.cointrade.actor.trade.OkCoinTrader;
-import com.spare.cointrade.actor.trade.TradeJudge;
 import com.spare.cointrade.actor.trade.TradeJudgeV2;
-import com.spare.cointrade.model.trade.HuobiTrade;
+import com.spare.cointrade.model.TradeType;
 import com.spare.cointrade.realtime.huobi.HuobiClient;
 import com.spare.cointrade.realtime.okcoin.OkcoinClient;
 import com.spare.cointrade.util.AkkaContext;
 import com.spare.cointrade.util.ApplicationContextHolder;
+import com.spare.cointrade.util.CoinTradeConstants;
 import com.spare.cointrade.util.SpringExtension;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
@@ -31,13 +31,14 @@ public class Application {
     @Autowired
     private ApplicationContext applicationContext;
 
-    private static void initActor() {
+    public static void initActor() {
 //        AkkaContext.getSystem().actorOf(TradeJudge.props(), "tradeJudge");
         AkkaContext.getSystem().actorOf(TradeJudgeV2.props(), "tradeJudge");
         AkkaContext.getSystem().actorOf(HuobiTrader.props(), "huobiTrader");
         AkkaContext.getSystem().actorOf(HuobiConsumer.props(), "huobiConsumer");
 //        AkkaContext.getSystem().actorOf(HuobiTradeMonitor.props(), "huobiTradeMonitor");
         AkkaContext.getSystem().actorOf(OkCoinTrader.props(), "okCoinTrader");
+        AkkaContext.getSystem().actorOf(ListingInfoMonitor.props(), CoinTradeConstants.ACTOR_LISTING_INFO_MONITOR);
 
     }
 
@@ -67,7 +68,7 @@ public class Application {
             }
             initActor();
             ApplicationContextHolder.getBean(HuobiClient.class).startFetch();
-            ApplicationContextHolder.getBean(OkcoinClient.class).startFetch();
+            ApplicationContextHolder.getBean(OkcoinClient.class).startFetch(TradeType.COIN_COIN);
         };
     }
 

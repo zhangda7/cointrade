@@ -8,7 +8,7 @@ import com.spare.cointrade.model.CurStatus;
 import com.spare.cointrade.model.TradeAction;
 import com.spare.cointrade.model.TradeDepth;
 import com.spare.cointrade.model.depth.HuobiDepth;
-import com.spare.cointrade.model.depth.OkcoinDepth;
+import com.spare.cointrade.realtime.okcoin.model.OkcoinDepth;
 import com.spare.cointrade.model.trade.HuobiTrade;
 import com.spare.cointrade.model.trade.OkCoinTrade;
 import com.spare.cointrade.util.AkkaContext;
@@ -18,7 +18,6 @@ import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.zip.DeflaterOutputStream;
 
 /**
  * 对于收到的消息进行判决，判断是否要进行trade

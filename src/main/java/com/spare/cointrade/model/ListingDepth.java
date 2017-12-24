@@ -14,8 +14,12 @@ public class ListingDepth {
 
     private ConcurrentSkipListMap<Double, DepthInfo> depthInfoMap;
 
+    public ListingDepth() {
+        this.depthInfoMap = new ConcurrentSkipListMap<>();
+    }
+
     @Data
-    class DepthInfo {
+    public class DepthInfo {
         private Double price;
 
         private Double amount;

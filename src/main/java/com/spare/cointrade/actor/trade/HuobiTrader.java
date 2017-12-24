@@ -1,22 +1,15 @@
 package com.spare.cointrade.actor.trade;
 
 import akka.actor.AbstractActor;
-import akka.actor.ActorRef;
-import akka.actor.ActorSelection;
 import akka.actor.Props;
-import com.spare.cointrade.actor.minitor.HuobiTradeMonitor;
 import com.spare.cointrade.model.TradeAction;
 import com.spare.cointrade.model.TradeInfo;
-import com.spare.cointrade.model.trade.HuobiTrade;
 import com.spare.cointrade.trade.huobi.ApiException;
 import com.spare.cointrade.trade.huobi.HuobiTradeClient;
-import com.spare.cointrade.util.AkkaContext;
 import com.spare.cointrade.util.ApplicationContextHolder;
 import com.spare.cointrade.util.CoinTradeContext;
-import com.spare.cointrade.util.SpringExtension;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import scala.App;
 
 import java.util.concurrent.atomic.AtomicInteger;
 

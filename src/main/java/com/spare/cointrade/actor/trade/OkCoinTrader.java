@@ -2,14 +2,9 @@ package com.spare.cointrade.actor.trade;
 
 import akka.actor.AbstractActor;
 import akka.actor.Props;
-import com.spare.cointrade.actor.minitor.HuobiTradeMonitor;
-import com.spare.cointrade.actor.minitor.OkCoinTradeMonitor;
 import com.spare.cointrade.model.TradeAction;
 import com.spare.cointrade.model.TradeInfo;
-import com.spare.cointrade.model.trade.HuobiTrade;
-import com.spare.cointrade.model.trade.OkCoinTrade;
 import com.spare.cointrade.trade.huobi.ApiException;
-import com.spare.cointrade.trade.huobi.HuobiTradeClient;
 import com.spare.cointrade.trade.okcoin.OkCoinTradeClient;
 import com.spare.cointrade.util.ApplicationContextHolder;
 import com.spare.cointrade.util.CoinTradeContext;

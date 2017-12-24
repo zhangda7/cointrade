@@ -12,4 +12,15 @@ public class AkkaContext {
     public static ActorSystem getSystem() {
         return system;
     }
+
+    public static final String AKKA_SYSTEM_PREFIX = "akka://rootSystem/user/";
+
+    /**
+     * 获取akka的actor权限定名
+     * @param simpleName 比如tradeJudge
+     * @return akka://rootSystem/user/tradeJudge
+     */
+    public static String getFullActorName(String simpleName) {
+        return AKKA_SYSTEM_PREFIX + simpleName;
+    }
 }

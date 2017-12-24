@@ -1,4 +1,4 @@
-package com.spare.cointrade.actor.minitor;
+package com.spare.cointrade.actor.monitor;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.spare.cointrade.dao.TradeEventMongoDao;
@@ -6,7 +6,6 @@ import com.spare.cointrade.model.TradeAction;
 import com.spare.cointrade.model.trade.HuobiTrade;
 import com.spare.cointrade.trade.huobi.HuobiTradeClient;
 import com.spare.cointrade.trade.huobi.OrderDetail;
-import com.spare.cointrade.util.ApplicationContextHolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;

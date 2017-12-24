@@ -1,4 +1,4 @@
-package com.spare.cointrade.model.depth;
+package com.spare.cointrade.realtime.okcoin.model;
 
 import lombok.Data;
 

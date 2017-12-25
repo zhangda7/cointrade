@@ -13,7 +13,7 @@ import java.io.IOException;
 /**
  * Created by dada on 2017/8/29.
  */
-@RestController
+//@RestController
 public class UserAccountController {
 
     @Autowired

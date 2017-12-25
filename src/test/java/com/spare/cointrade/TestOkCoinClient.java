@@ -25,6 +25,7 @@ public class TestOkCoinClient {
 
     @Test
     public void testStart() throws InterruptedException {
+        CoinApplicationMain.initActor();
         okcoinClient = new OkcoinClient();
         okcoinClient.startFetch(TradeType.COIN_COIN);
 

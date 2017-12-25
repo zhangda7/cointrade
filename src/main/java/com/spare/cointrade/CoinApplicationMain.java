@@ -26,7 +26,7 @@ import java.util.Arrays;
  * Created by dada on 2017/7/16.
  */
 @SpringBootApplication
-public class Application {
+public class CoinApplicationMain {
 
     @Autowired
     private ApplicationContext applicationContext;
@@ -44,7 +44,7 @@ public class Application {
 
     public static void main(String[] args) {
 //        initActor();
-        SpringApplication.run(Application.class, args);
+        SpringApplication.run(CoinApplicationMain.class, args);
     }
 
 //    @Bean

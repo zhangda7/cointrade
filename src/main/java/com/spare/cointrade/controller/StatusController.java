@@ -2,6 +2,7 @@ package com.spare.cointrade.controller;
 
 import akka.actor.ActorRef;
 import com.alibaba.fastjson.JSON;
+import com.spare.cointrade.actor.monitor.ListingInfoMonitor;
 import com.spare.cointrade.actor.trade.TradeJudge;
 import com.spare.cointrade.actor.trade.TradeJudgeV2;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -21,6 +22,11 @@ public class StatusController {
     @RequestMapping("/tradestatus2")
     public String tradeStatus2() {
         return JSON.toJSONString(TradeJudgeV2.curStatus);
+    }
+
+    @RequestMapping("/listingInfo")
+    public String listingInfo() {
+        return JSON.toJSONString(ListingInfoMonitor.listingFullInfoMap);
     }
 
 }

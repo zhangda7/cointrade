@@ -19,7 +19,7 @@ import java.util.List;
 /**
  * Created by dada on 2017/8/22.
  */
-@Component
+//@Component
 public class HuobiTradeClient {
 
 //    static final String API_KEY = "5e433d0a-a42aa575-afb58664-02d56";

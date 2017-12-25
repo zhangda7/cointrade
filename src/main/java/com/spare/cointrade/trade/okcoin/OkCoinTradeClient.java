@@ -29,7 +29,7 @@ import java.util.List;
 /**
  * Created by dada on 2017/8/26.
  */
-@Component
+//@Component
 public class OkCoinTradeClient {
 
     private static Logger logger = LoggerFactory.getLogger(OkCoinTradeClient.class);

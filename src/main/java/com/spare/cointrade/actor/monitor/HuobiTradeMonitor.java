@@ -21,7 +21,7 @@ import java.util.concurrent.*;
 //@Component
 //@Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
 //@Qualifier("huobiTradeMonitor")
-@Component
+//@Component
 public class HuobiTradeMonitor{
 
     private static Logger logger = LoggerFactory.getLogger(HuobiTradeMonitor.class);

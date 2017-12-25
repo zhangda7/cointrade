@@ -21,7 +21,7 @@ import java.util.concurrent.TimeUnit;
 /**
  * Created by dada on 2017/9/9.
  */
-@Component
+//@Component
 public class MonitorService implements Runnable {
 
     private static Logger logger = LoggerFactory.getLogger(MonitorService.class);

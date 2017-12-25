@@ -53,7 +53,9 @@ public class BuissnesWebSocketServiceImpl implements WebSocketService {
 		if(okCoinDataList.get(0).getData() instanceof JSONObject) {
 			OkcoinDepth depth = ((JSONObject) okCoinDataList.get(0).getData()).toJavaObject(OkcoinDepth.class);
 			ListingFullInfo listingFullInfo = convert(data.getChannel(), depth);
-			listingInfoMonitor.tell(listingFullInfo, ActorRef.noSender());
+			if(listingFullInfo != null) {
+				listingInfoMonitor.tell(listingFullInfo, ActorRef.noSender());
+			}
 			//TODO send to ok coin consumer
 		}
 	}
@@ -72,17 +74,17 @@ public class BuissnesWebSocketServiceImpl implements WebSocketService {
 		Pair<String> pair = parseCoinSource(channel);
 		listingFullInfo.setSourceCoinType(CoinType.valueOf(pair.get_1().toUpperCase()));
 		listingFullInfo.setTargetCoinType(CoinType.valueOf(pair.get_2().toUpperCase()));
-		listingFullInfo.setBuyDepth(convert(okcoinDepth.getAsks()));
-		listingFullInfo.setSellDepth(convert(okcoinDepth.getBids()));
+		updateDepth(okcoinDepth.getAsks(), listingFullInfo.getBuyDepth());
+		updateDepth(okcoinDepth.getBids(), listingFullInfo.getSellDepth());
 		listingFullInfo.setTimestamp(okcoinDepth.getTimestamp());
 		return listingFullInfo;
 	}
 
-	private ListingDepth convert(List<List<String>> depths) {
+	private ListingDepth updateDepth(List<List<String>> depths, ListingDepth listingDepth) {
 		if(depths == null) {
 			return null;
 		}
-		ListingDepth listingDepth = new ListingDepth();
+//		ListingDepth listingDepth = new ListingDepth();
 		for (List<String> one : depths) {
 			ListingDepth.DepthInfo depthInfo = listingDepth.new DepthInfo();
 			depthInfo.setPrice(Double.parseDouble(one.get(0)));

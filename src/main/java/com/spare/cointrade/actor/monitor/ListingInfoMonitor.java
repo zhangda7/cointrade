@@ -43,7 +43,11 @@ public class ListingInfoMonitor extends AbstractActor {
                     listingFullInfoMap.put(key, listingFullInfo);
                     return;
                 }
-                updateListingInfo(listingFullInfoMap.get(key), listingFullInfo);
+                if(listingFullInfo.getTradePlatform().equals(TradePlatform.OKEX)) {
+                    updateListingInfo(listingFullInfoMap.get(key), listingFullInfo);
+                } else if(listingFullInfo.getTradePlatform().equals(TradePlatform.HUOBI)){
+                    clearAndSetListingInfo(listingFullInfoMap.get(key), listingFullInfo);
+                }
 
 //                judgeClearCache();
 //                parseHuobi(depth);
@@ -63,6 +67,22 @@ public class ListingInfoMonitor extends AbstractActor {
             updateOneDepth(source.getBuyDepth(), target.getBuyDepth());
         }
         if(target.getSellDepth() != null) {
+            updateOneDepth(source.getSellDepth(), target.getSellDepth());
+        }
+    }
+
+    /**
+     * 全部赋值最新的
+     * @param source
+     * @param target
+     */
+    private void clearAndSetListingInfo(ListingFullInfo source, ListingFullInfo target) {
+        if(target.getBuyDepth() != null) {
+            source.getBuyDepth().getDepthInfoMap().clear();
+            updateOneDepth(source.getBuyDepth(), target.getBuyDepth());
+        }
+        if(target.getSellDepth() != null) {
+            source.getSellDepth().getDepthInfoMap().clear();
             updateOneDepth(source.getSellDepth(), target.getSellDepth());
         }
     }

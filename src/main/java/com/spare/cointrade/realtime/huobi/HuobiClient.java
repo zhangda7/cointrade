@@ -1,5 +1,7 @@
 package com.spare.cointrade.realtime.huobi;
 
+import com.spare.cointrade.model.CoinType;
+import com.spare.cointrade.model.TradeType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -16,13 +18,18 @@ public class HuobiClient {
 
 
 //    @PostConstruct
-    public void startFetch() {
+    public void startFetch(String topic, CoinType sourceType, CoinType targetType) {
         try {
             WebSocketUtils.closeQuietly();
-            WebSocketUtils.executeWebSocket();
+            WebSocketUtils.executeWebSocket(TradeType.COIN_COIN, topic, sourceType, targetType);
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    @PostConstruct
+    public void tempStart() {
+        startFetch("market.ethbtc.depth.step0", CoinType.BTC, CoinType.ETH);
     }
 
 }

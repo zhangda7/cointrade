@@ -10,6 +10,7 @@ import com.spare.cointrade.actor.trade.TradeJudgeV2;
 import com.spare.cointrade.model.ListingDepth;
 import com.spare.cointrade.model.ListingFullInfo;
 import com.spare.cointrade.model.RestfulPage;
+import com.spare.cointrade.model.TradePlatform;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -39,13 +40,26 @@ public class StatusController {
         return JSON.toJSONString(ListingInfoMonitor.listingFullInfoMap);
     }
 
-    @RequestMapping("/listingBuyInfo")
-    public String listingBuyInfo() {
+    @RequestMapping("/listingOkexInfo")
+    public String listingOkexInfo() {
+        return listingBuyInfo(TradePlatform.OKEX);
+    }
+
+    @RequestMapping("/listingHuobiInfo")
+    public String listingHuobiInfo() {
+        return listingBuyInfo(TradePlatform.HUOBI);
+    }
+
+
+    public String listingBuyInfo(TradePlatform platform) {
         RestfulPage restfulPage = new RestfulPage();
         restfulPage.setCode(CODE_SUCCESS);
         JSONObject retObject = new JSONObject();
         int maxRecords = 5;
         for (ListingFullInfo listingFullInfo : ListingInfoMonitor.listingFullInfoMap.values()) {
+            if(! listingFullInfo.getTradePlatform().equals(platform)) {
+                continue;
+            }
             String key = listingFullInfo.toKey();
             JSONArray jsonArray = new JSONArray();
             int i = 1;

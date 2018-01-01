@@ -132,7 +132,8 @@ public class TradeJudgeV2 extends AbstractActor {
                 curStatus.setHuobiDate(null);
                 huobiNoDataCount.set(0);
                 logger.warn("Restart huobi client");
-                ApplicationContextHolder.getBean(HuobiClient.class).startFetch();
+                //TODO just comment
+//                ApplicationContextHolder.getBean(HuobiClient.class).startFetch();
             }
         } else if(curStatus.getOkCoinDate() != null && curTs - curStatus.getOkCoinDate().getTime() > 7000) {
             logger.warn("Begin clear okcoin cache data");

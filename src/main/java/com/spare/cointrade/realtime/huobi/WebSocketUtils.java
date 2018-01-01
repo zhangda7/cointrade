@@ -5,9 +5,12 @@ import akka.actor.ActorSelection;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 //import com.spare.cointrade.actor.consumer.HuobiConsumer;
+import com.spare.cointrade.model.*;
 import com.spare.cointrade.model.depth.HuobiDepth;
+import com.spare.cointrade.realtime.okcoin.model.OkcoinDepth;
 import com.spare.cointrade.util.AkkaContext;
 //import org.java_websocket.client.DefaultSSLWebSocketClientFactory;
+import com.spare.cointrade.util.CoinTradeConstants;
 import org.java_websocket.client.WebSocketClient;
 import org.java_websocket.drafts.Draft;
 import org.java_websocket.drafts.Draft_17;
@@ -27,6 +30,7 @@ import java.nio.ByteBuffer;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class WebSocketUtils extends WebSocketClient {
@@ -34,7 +38,7 @@ public class WebSocketUtils extends WebSocketClient {
 	private static Logger logger = LoggerFactory.getLogger(WebSocketUtils.class);
 
 //	private static final String url = "wss://be.huobi.com/ws";
-	private static final String url = "wss://be.huobi.com/ws";
+	private static final String url = "wss://api.huobi.pro/ws";
 
 	//FIXME 貌似比特币的只能和api.huobi.com交互
 	private static final String BTC_DEPATH_STEP_TOPIC = "market.btccny.depth.step0";
@@ -42,17 +46,29 @@ public class WebSocketUtils extends WebSocketClient {
 	//FIXME 貌似ETH的只能和be.huobi.com交互
 	private static final String ETH_DEPATH_STEP_TOPIC = "market.ethcny.depth.step0";
 
+	private static final String ETH_BTC_DEPATH_STEP_TOPIC = "market.ethbtc.depth.step0";
 
 	private static ActorSelection huobiConumser;
 
 	private static ActorSelection tradeSel;
 
+	private ActorSelection listingInfoMonitor;
+
 	private static WebSocketUtils chatclient = null;
 
+	private TradeType tradeType;
+
+	private CoinType sourceCoinType;
+
+	private CoinType targetCoinType;
+
+	private String topic;
+
 	private static void init() {
-		tradeSel = AkkaContext.getSystem().actorSelection("akka://rootSystem/user/tradeJudge");
+//		tradeSel = AkkaContext.getSystem().actorSelection("akka://rootSystem/user/tradeJudge");
 		//		tradeJudge = AkkaContext.getSystem().actorSelection("user/tradeJudge").anchor();
-		huobiConumser = AkkaContext.getSystem().actorSelection("akka://rootSystem/user/huobiConsumer");
+//		huobiConumser = AkkaContext.getSystem().actorSelection("akka://rootSystem/user/huobiConsumer");
+
 	}
 
 	static {
@@ -67,8 +83,16 @@ public class WebSocketUtils extends WebSocketClient {
 		super(serverURI);
 	}
 
-	public WebSocketUtils(URI serverUri, Map<String, String> headers, int connecttimeout) {
+	public WebSocketUtils(URI serverUri, Map<String, String> headers,
+						  int connecttimeout, TradeType tradeType,
+						  CoinType sourceType, CoinType targetType, String topic) {
 		super(serverUri, new Draft_17(), headers, connecttimeout);
+		this.tradeType = tradeType;
+		this.sourceCoinType = sourceType;
+		this.targetCoinType = targetType;
+		this.topic = topic;
+		listingInfoMonitor = AkkaContext.getSystem().actorSelection(
+				AkkaContext.getFullActorName(CoinTradeConstants.ACTOR_LISTING_INFO_MONITOR));
 	}
 
 	@Override
@@ -98,16 +122,53 @@ public class WebSocketUtils extends WebSocketClient {
 			} else {
 //				System.out.println(" market:" + market);
 				HuobiDepth depth = JSON.parseObject(market, HuobiDepth.class);
-				logger.debug("Receive {}", depth);
-				if(depth.getCh() != null && depth.getCh().equals(ETH_DEPATH_STEP_TOPIC)) {
-//					tradeJudge.tell(depth, ActorRef.noSender());
-					tradeSel.tell(depth, ActorRef.noSender());
-					huobiConumser.tell(depth, ActorRef.noSender());
+				logger.info("Huobi receive {}", depth);
+				if(depth.getCh() != null && depth.getCh().equals(this.topic)) {
+////					tradeJudge.tell(depth, ActorRef.noSender());
+//					tradeSel.tell(depth, ActorRef.noSender());
+//					huobiConumser.tell(depth, ActorRef.noSender());
+					ListingFullInfo listingFullInfo = convert(depth.getCh(), depth);
+					if(listingFullInfo != null) {
+						listingInfoMonitor.tell(listingFullInfo, ActorRef.noSender());
+					}
 				}
 			}
 		} catch (IOException e) {
 			logger.error("ERROR ", e);
 		}
+	}
+
+	private ListingFullInfo convert(String channel, HuobiDepth huobiDepth) {
+		if(huobiDepth == null ||
+				(huobiDepth.getTick() == null) ) {
+			return null;
+		}
+		ListingFullInfo listingFullInfo = new ListingFullInfo();
+		listingFullInfo.setTradePlatform(TradePlatform.HUOBI);
+		listingFullInfo.setTradeType(this.tradeType);
+		if(! this.tradeType.equals(TradeType.COIN_COIN)) {
+			throw new IllegalArgumentException("Trade type " + this.tradeType + "not supported");
+		}
+		listingFullInfo.setSourceCoinType(this.sourceCoinType);
+		listingFullInfo.setTargetCoinType(this.targetCoinType);
+		updateDepth(huobiDepth.getTick().getAsks(), listingFullInfo.getBuyDepth());
+		updateDepth(huobiDepth.getTick().getBids(), listingFullInfo.getSellDepth());
+		listingFullInfo.setTimestamp(huobiDepth.getTs());
+		return listingFullInfo;
+	}
+
+	private ListingDepth updateDepth(List<List<Double>> depths, ListingDepth listingDepth) {
+		if(depths == null) {
+			return null;
+		}
+//		ListingDepth listingDepth = new ListingDepth();
+		for (List<Double> one : depths) {
+			ListingDepth.DepthInfo depthInfo = listingDepth.new DepthInfo();
+			depthInfo.setPrice(one.get(0));
+			depthInfo.setAmount(one.get(1));
+			listingDepth.getDepthInfoMap().put(depthInfo.getPrice(), depthInfo);
+		}
+		return listingDepth;
 	}
 
 	@Override
@@ -213,7 +274,7 @@ public class WebSocketUtils extends WebSocketClient {
 //		}
 //	}
 
-	public static void executeWebSocket() throws Exception {
+	public static void executeWebSocket(TradeType tradeType, String topic, CoinType sourceType, CoinType targetType) throws Exception {
 //		ScheduledExecutorService executorService = Executors.newScheduledThreadPool(1);
 //		executorService.scheduleWithFixedDelay(new TimerSend(), 1,1, TimeUnit.SECONDS);
 //		Thread.currentThread().join();
@@ -222,7 +283,7 @@ public class WebSocketUtils extends WebSocketClient {
 			chatclient.close();
 			chatclient = null;
 		}
-		chatclient = new WebSocketUtils(new URI(url), getWebSocketHeaders(), 1000);
+		chatclient = new WebSocketUtils(new URI(url), getWebSocketHeaders(), 1000, tradeType, sourceType, targetType, topic);
 		trustAllHosts(chatclient);
 		chatclient.connectBlocking();
 //		// 订阅K线数据 sub 根据自己需要订阅数据
@@ -238,7 +299,8 @@ public class WebSocketUtils extends WebSocketClient {
 //		chatclient.send(JSONObject.toJSONString(subModel1));
 
         SubModel subModel1 = new SubModel();
-        subModel1.setSub(ETH_DEPATH_STEP_TOPIC);
+        subModel1.setSub(topic);
+//        subModel1.setSub(ETH_BTC_DEPATH_STEP_TOPIC);
         subModel1.setId(10001L);
         chatclient.send(JSONObject.toJSONString(subModel1));
 //		// 取消订阅省略

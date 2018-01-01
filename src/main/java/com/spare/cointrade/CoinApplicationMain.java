@@ -6,6 +6,7 @@ import com.spare.cointrade.actor.monitor.ListingInfoMonitor;
 import com.spare.cointrade.actor.trade.HuobiTrader;
 import com.spare.cointrade.actor.trade.OkCoinTrader;
 import com.spare.cointrade.actor.trade.TradeJudgeV2;
+import com.spare.cointrade.model.CoinType;
 import com.spare.cointrade.model.TradeType;
 import com.spare.cointrade.realtime.huobi.HuobiClient;
 import com.spare.cointrade.realtime.okcoin.OkcoinClient;
@@ -67,7 +68,7 @@ public class CoinApplicationMain {
                 ApplicationContextHolder.putBean(beanName.toUpperCase(), ctx.getBean(beanName));
             }
             initActor();
-            ApplicationContextHolder.getBean(HuobiClient.class).startFetch();
+            ApplicationContextHolder.getBean(HuobiClient.class).startFetch("market.ethbtc.depth.step0", CoinType.BTC, CoinType.ETH);
             ApplicationContextHolder.getBean(OkcoinClient.class).startFetch(TradeType.COIN_COIN);
         };
     }

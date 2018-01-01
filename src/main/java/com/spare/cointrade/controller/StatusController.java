@@ -48,13 +48,28 @@ public class StatusController {
         for (ListingFullInfo listingFullInfo : ListingInfoMonitor.listingFullInfoMap.values()) {
             String key = listingFullInfo.toKey();
             JSONArray jsonArray = new JSONArray();
-            int i = 0;
+            int i = 1;
             for(ListingDepth.DepthInfo depthInfo : listingFullInfo.getBuyDepth().getDepthInfoMap().values()) {
                 JSONObject jsonObject = new JSONObject();
+                jsonObject.put("name", "卖(" + i + ")");
                 jsonObject.put("price", depthInfo.getPrice());
                 jsonObject.put("amount", depthInfo.getAmount());
+                jsonObject.put("type", "sell");
+                //每次都在第0个位置插入，才能实现倒排
+                jsonArray.add(0, jsonObject);
+                if(i++ >= maxRecords) {
+                    break;
+                }
+            }
+            i = 1;
+            for(ListingDepth.DepthInfo depthInfo : listingFullInfo.getSellDepth().getDepthInfoMap().values()) {
+                JSONObject jsonObject = new JSONObject();
+                jsonObject.put("name", "买(" + i + ")");
+                jsonObject.put("price", depthInfo.getPrice());
+                jsonObject.put("amount", depthInfo.getAmount());
+                jsonObject.put("type", "buy");
                 jsonArray.add(jsonObject);
-                if(i++ > maxRecords) {
+                if(i++ >= maxRecords) {
                     break;
                 }
             }

@@ -3,13 +3,12 @@ package com.spare.cointrade.actor.monitor;
 import akka.actor.AbstractActor;
 import akka.actor.Props;
 import com.spare.cointrade.actor.trade.TradeJudgeV2;
-import com.spare.cointrade.model.InfoStatus;
-import com.spare.cointrade.model.ListingDepth;
-import com.spare.cointrade.model.ListingFullInfo;
-import com.spare.cointrade.model.TradePlatform;
+import com.spare.cointrade.model.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -26,6 +25,10 @@ public class ListingInfoMonitor extends AbstractActor {
         return Props.create(ListingInfoMonitor.class, () -> new ListingInfoMonitor());
     }
 
+    /**
+     * 存储所有平台的挂牌信息
+     * key:ListingFullInfo.toKey()，包括平台。交易币种等
+     */
     public static Map<String, ListingFullInfo> listingFullInfoMap = new ConcurrentHashMap<>();
 
     @Override
@@ -56,6 +59,36 @@ public class ListingInfoMonitor extends AbstractActor {
             }
         })).build();
     }
+
+    private void calcOneDelta() {
+        List<ListingFullInfo> targetChain = findOneChain(new CoinType[] {CoinType.USDT, CoinType.BTG, CoinType.BTC, CoinType.USDT});
+
+    }
+
+    private List<ListingFullInfo> findOneChain(CoinType[] targetChain) {
+//        CoinType[] targetChain = new CoinType[] {CoinType.USDT, CoinType.BTG, CoinType.BTC, CoinType.USDT};
+        List<ListingFullInfo> targetList = new ArrayList<>();
+        while (true) {
+            int index = 0;
+
+            for(ListingFullInfo listingFullInfo : listingFullInfoMap.values()) {
+                if(listingFullInfo.getSourceCoinType().equals(targetChain[index]) &&
+                        listingFullInfo.getTargetCoinType().equals(targetChain[index + 1])) {
+                    targetList.add(listingFullInfo);
+
+                    break;
+                }
+            }
+            index ++;
+
+            if(index >= 3) {
+                break;
+            }
+        }
+        return targetList;
+    }
+
+
 
     /**
      * 根据传递的更新的target info，更新source info

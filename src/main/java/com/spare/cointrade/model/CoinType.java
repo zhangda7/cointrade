@@ -10,6 +10,8 @@ public enum CoinType {
 
     LTC,
 
+    USDT,
+
     CNY,
 
     USD;

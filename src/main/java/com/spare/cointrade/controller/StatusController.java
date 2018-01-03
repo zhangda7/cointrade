@@ -7,12 +7,10 @@ import com.alibaba.fastjson.JSONObject;
 import com.spare.cointrade.actor.monitor.ListingInfoMonitor;
 import com.spare.cointrade.actor.trade.TradeJudge;
 import com.spare.cointrade.actor.trade.TradeJudgeV2;
-import com.spare.cointrade.model.ListingDepth;
-import com.spare.cointrade.model.ListingFullInfo;
-import com.spare.cointrade.model.RestfulPage;
-import com.spare.cointrade.model.TradePlatform;
+import com.spare.cointrade.model.*;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
@@ -42,25 +40,33 @@ public class StatusController {
 
     @RequestMapping("/listingOkexInfo")
     public String listingOkexInfo() {
-        return listingBuyInfo(TradePlatform.OKEX);
+        return listingBuyInfo(TradePlatform.OKEX, CoinType.BTC);
     }
 
     @RequestMapping("/listingHuobiInfo")
     public String listingHuobiInfo() {
-        return listingBuyInfo(TradePlatform.HUOBI);
+        return listingBuyInfo(TradePlatform.HUOBI, CoinType.BTC);
     }
 
+    @RequestMapping("/listingPriceInfo")
+    public String listingPriceInfo(@RequestParam("platform") String platform, @RequestParam("sourcecoin") String sourcecoin) {
+        return listingBuyInfo(TradePlatform.valueOf(platform), CoinType.valueOf(sourcecoin));
+    }
 
-    public String listingBuyInfo(TradePlatform platform) {
+    public String listingBuyInfo(TradePlatform platform, CoinType sourceCoin) {
         RestfulPage restfulPage = new RestfulPage();
         restfulPage.setCode(CODE_SUCCESS);
         JSONObject retObject = new JSONObject();
-        int maxRecords = 5;
+        int maxRecords = 3;
         for (ListingFullInfo listingFullInfo : ListingInfoMonitor.listingFullInfoMap.values()) {
             if(! listingFullInfo.getTradePlatform().equals(platform)) {
                 continue;
             }
-            String key = listingFullInfo.toKey();
+            if(! listingFullInfo.getSourceCoinType().equals(sourceCoin)) {
+                continue;
+            }
+//            String key = listingFullInfo.toKey();
+            String key = "LISTING_PRICE";
             JSONArray jsonArray = new JSONArray();
             int i = 1;
             for(ListingDepth.DepthInfo depthInfo : listingFullInfo.getBuyDepth().getDepthInfoMap().values()) {

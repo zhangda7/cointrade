@@ -9,6 +9,8 @@ public enum TradePlatform {
 
     OKEX,
 
-    BINANCE
+    BINANCE,
+
+    BITHUMB;
 
 }

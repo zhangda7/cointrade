@@ -25,6 +25,19 @@ public class Api_Client {
 	this.api_secret = api_secret;
     }
 
+	/**
+	 * 获取depth信息
+	 * https://api.bithumb.com/public/orderbook/{currency}
+	 * @param currency BTC, ETH, DASH, LTC, ETC, XRP, BCH, XMR, ZEC, QTUM, BTG, EOS (基本值: BTC), ALL(全部
+
+	 * @return
+	 */
+	public String fetchDepthInfo(String currency) {
+		HashMap<String, String> rgParams = new HashMap<String, String>();
+		String result = this.callApi("/public/orderbook/" + currency, rgParams);
+		return result;
+	}
+
     /**
      * ������ �ð��� ns�� �����Ѵ�.(1/1,000,000,000 ��)
      * 

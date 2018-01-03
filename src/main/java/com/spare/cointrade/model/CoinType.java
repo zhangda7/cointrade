@@ -10,10 +10,20 @@ public enum CoinType {
 
     LTC,
 
+    BCH,
+
     USDT,
 
+    /**
+     * 人民币
+     */
     CNY,
 
-    USD;
+    USD,
+
+    /**
+     * 韩币
+     */
+    KRW;
 
 }

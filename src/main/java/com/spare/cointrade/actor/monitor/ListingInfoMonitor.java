@@ -50,6 +50,8 @@ public class ListingInfoMonitor extends AbstractActor {
                     updateListingInfo(listingFullInfoMap.get(key), listingFullInfo);
                 } else if(listingFullInfo.getTradePlatform().equals(TradePlatform.HUOBI)){
                     clearAndSetListingInfo(listingFullInfoMap.get(key), listingFullInfo);
+                } else if(listingFullInfo.getTradePlatform().equals(TradePlatform.BITHUMB)){
+                    clearAndSetListingInfo(listingFullInfoMap.get(key), listingFullInfo);
                 }
 
 //                judgeClearCache();

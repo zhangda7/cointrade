@@ -25,7 +25,7 @@ public class HuobiTickerSimpleSyncer implements Runnable {
 
     private static AtomicBoolean started = new AtomicBoolean();
 
-    @PostConstruct
+//    @PostConstruct
     public void start() {
         if(! started.compareAndSet(false, true)) {
             logger.error("Syncer has started");

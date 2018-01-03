@@ -68,8 +68,8 @@ public class CoinApplicationMain {
                 ApplicationContextHolder.putBean(beanName.toUpperCase(), ctx.getBean(beanName));
             }
             initActor();
-            ApplicationContextHolder.getBean(HuobiClient.class).startFetch("market.ethbtc.depth.step0", CoinType.BTC, CoinType.ETH);
-            ApplicationContextHolder.getBean(OkcoinClient.class).startFetch(TradeType.COIN_COIN);
+//            ApplicationContextHolder.getBean(HuobiClient.class).startFetch("market.ethbtc.depth.step0", CoinType.BTC, CoinType.ETH);
+//            ApplicationContextHolder.getBean(OkcoinClient.class).startFetch(TradeType.COIN_COIN);
         };
     }
 

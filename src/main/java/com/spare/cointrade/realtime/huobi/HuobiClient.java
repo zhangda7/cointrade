@@ -27,9 +27,9 @@ public class HuobiClient {
         }
     }
 
-    @PostConstruct
-    public void tempStart() {
-        startFetch("market.ethbtc.depth.step0", CoinType.BTC, CoinType.ETH);
-    }
+//    @PostConstruct
+//    public void tempStart() {
+//        startFetch("market.ethbtc.depth.step0", CoinType.BTC, CoinType.ETH);
+//    }
 
 }

@@ -12,6 +12,8 @@ public enum CoinType {
 
     BCH,
 
+    QTUM,
+
     USDT,
 
     /**

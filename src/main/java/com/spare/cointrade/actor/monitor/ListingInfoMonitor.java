@@ -52,6 +52,8 @@ public class ListingInfoMonitor extends AbstractActor {
                     clearAndSetListingInfo(listingFullInfoMap.get(key), listingFullInfo);
                 } else if(listingFullInfo.getTradePlatform().equals(TradePlatform.BITHUMB)){
                     clearAndSetListingInfo(listingFullInfoMap.get(key), listingFullInfo);
+                } else if(listingFullInfo.getTradePlatform().equals(TradePlatform.BINANCE)){
+                    clearAndSetListingInfo(listingFullInfoMap.get(key), listingFullInfo);
                 }
 
 //                judgeClearCache();
@@ -112,6 +114,7 @@ public class ListingInfoMonitor extends AbstractActor {
      * @param target
      */
     private void clearAndSetListingInfo(ListingFullInfo source, ListingFullInfo target) {
+        source.setTimestamp(target.getTimestamp());
         if(target.getBuyDepth() != null) {
             source.getBuyDepth().getDepthInfoMap().clear();
             updateOneDepth(source.getBuyDepth(), target.getBuyDepth());

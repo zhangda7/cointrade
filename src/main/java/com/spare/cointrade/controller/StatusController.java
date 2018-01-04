@@ -13,6 +13,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
+
 /**
  * Created by dada on 2017/7/16.
  */
@@ -57,7 +60,8 @@ public class StatusController {
         RestfulPage restfulPage = new RestfulPage();
         restfulPage.setCode(CODE_SUCCESS);
         JSONObject retObject = new JSONObject();
-        int maxRecords = 3;
+        int maxRecords = 2;
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
         for (ListingFullInfo listingFullInfo : ListingInfoMonitor.listingFullInfoMap.values()) {
             if(! listingFullInfo.getTradePlatform().equals(platform)) {
                 continue;
@@ -94,6 +98,7 @@ public class StatusController {
                 }
             }
             retObject.put(key, jsonArray);
+            retObject.put("lastDate", sdf.format(new Date(listingFullInfo.getTimestamp())));
         }
         restfulPage.setData(JSON.toJSONString(retObject));
         return JSON.toJSONString(restfulPage);

@@ -52,7 +52,7 @@ public class BithumbSimpleSyncer implements Runnable {
                 syncOneCoin(CoinType.BTC);
                 syncOneCoin(CoinType.ETH);
                 syncOneCoin(CoinType.LTC);
-                syncOneCoin(CoinType.BCH);
+                syncOneCoin(CoinType.QTUM);
 //            HashMap<String, String> rgParams = new HashMap<String, String>();
 //            String result = api.callApi("/public/ticker/BTG", rgParams);
 //            System.out.println(result);
@@ -95,8 +95,8 @@ public class BithumbSimpleSyncer implements Runnable {
         }
         for (OrderBookInfo.ListingPair listingPair : listingPairList) {
             ListingDepth.DepthInfo depthInfo = listingDepth.new DepthInfo();
-            depthInfo.setPrice(listingPair.getPrice());
-//            depthInfo.setPrice(listingPair.getPrice() * ExchangeContext.KRW2CNY());
+//            depthInfo.setPrice(listingPair.getPrice());
+            depthInfo.setPrice(listingPair.getPrice() * ExchangeContext.KRW2CNY());
             depthInfo.setAmount(listingPair.getQuantity());
             listingDepth.getDepthInfoMap().put(depthInfo.getPrice(), depthInfo);
         }

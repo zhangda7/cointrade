@@ -6,10 +6,12 @@ import com.spare.cointrade.actor.monitor.ListingInfoMonitor;
 import com.spare.cointrade.actor.trade.HuobiTrader;
 import com.spare.cointrade.actor.trade.OkCoinTrader;
 import com.spare.cointrade.actor.trade.TradeJudgeV2;
+import com.spare.cointrade.model.Account;
 import com.spare.cointrade.model.CoinType;
 import com.spare.cointrade.model.TradeType;
 import com.spare.cointrade.realtime.huobi.HuobiClient;
 import com.spare.cointrade.realtime.okcoin.OkcoinClient;
+import com.spare.cointrade.trade.AccountManager;
 import com.spare.cointrade.util.AkkaContext;
 import com.spare.cointrade.util.ApplicationContextHolder;
 import com.spare.cointrade.util.CoinTradeConstants;
@@ -43,8 +45,16 @@ public class CoinApplicationMain {
 
     }
 
+    private static void mockAccount() {
+        Account bithumb = AccountManager.INSTANCE.mockBithumbAccount();
+        Account binance = AccountManager.INSTANCE.mockBinancebAccount();
+        AccountManager.INSTANCE.addAccount(binance);
+        AccountManager.INSTANCE.addAccount(bithumb);
+    }
+
     public static void main(String[] args) {
 //        initActor();
+        mockAccount();
         SpringApplication.run(CoinApplicationMain.class, args);
     }
 

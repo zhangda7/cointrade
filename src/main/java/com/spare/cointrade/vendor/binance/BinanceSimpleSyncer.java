@@ -55,7 +55,7 @@ public class BinanceSimpleSyncer implements Runnable {
         listingInfoMonitor = AkkaContext.getSystem().actorSelection(
                 AkkaContext.getFullActorName(CoinTradeConstants.ACTOR_LISTING_INFO_MONITOR));
         scheduledExecutorService = Executors.newScheduledThreadPool(1, new DefaultThreadFactory("BinanceSimpleSyncer"));
-        scheduledExecutorService.scheduleWithFixedDelay(this, 5, 5, TimeUnit.SECONDS);
+        scheduledExecutorService.scheduleWithFixedDelay(this, 5, 2, TimeUnit.SECONDS);
 
     }
 
@@ -64,9 +64,9 @@ public class BinanceSimpleSyncer implements Runnable {
         try {
             int count = 10;
             syncOneCoin(CoinType.BTC, CoinType.USDT, 5);
-            syncOneCoin(CoinType.ETH, CoinType.BTC, count);
-            syncOneCoin(CoinType.LTC, CoinType.BTC, count);
-            syncOneCoin(CoinType.QTUM, CoinType.BTC, count);
+            syncOneCoin(CoinType.ETH, CoinType.USDT, count);
+            syncOneCoin(CoinType.LTC, CoinType.USDT, count);
+//            syncOneCoin(CoinType.BCC, CoinType.USDT, count);
 
         } catch (Exception e) {
             logger.error("ERROR ", e);
@@ -115,15 +115,16 @@ public class BinanceSimpleSyncer implements Runnable {
         }
         for (OrderBookEntry listingPair : listingPairList) {
             ListingDepth.DepthInfo depthInfo = listingDepth.new DepthInfo();
-            depthInfo.setPrice(Double.parseDouble(listingPair.getPrice()));
+            depthInfo.setOriPrice(Double.parseDouble(listingPair.getPrice()));
 
             if(coinUsdtMap.containsKey(targetCoin)) {
-                depthInfo.setPrice(depthInfo.getPrice() * coinUsdtMap.get(targetCoin) * ExchangeContext.USD2CNY());
+                depthInfo.setNormalizePrice(depthInfo.getOriPrice() * coinUsdtMap.get(targetCoin) * ExchangeContext.USD2CNY());
             } else {
-                depthInfo.setPrice(0.0);
+                depthInfo.setNormalizePrice(0.0);
             }
             depthInfo.setAmount(Double.parseDouble(listingPair.getQty()));
-            listingDepth.getDepthInfoMap().put(depthInfo.getPrice(), depthInfo);
+            depthInfo.setTotalNormalizePrice(depthInfo.getNormalizePrice() * depthInfo.getAmount());
+            listingDepth.getDepthInfoMap().put(depthInfo.getNormalizePrice(), depthInfo);
         }
         return listingDepth;
     }

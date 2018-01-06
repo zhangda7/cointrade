@@ -32,7 +32,7 @@ public class HuobiTickerSimpleSyncer implements Runnable {
             return;
         }
         scheduledExecutorService = Executors.newScheduledThreadPool(1, new DefaultThreadFactory("BithumbSimpleSyncer"));
-        scheduledExecutorService.scheduleWithFixedDelay(this, 5, 5, TimeUnit.SECONDS);
+        scheduledExecutorService.scheduleWithFixedDelay(this, 5, 2, TimeUnit.SECONDS);
     }
 
     @Override

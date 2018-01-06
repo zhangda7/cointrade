@@ -22,9 +22,27 @@ public class ListingDepth {
 
     @Data
     public class DepthInfo {
-        private Double price;
+
+        /**
+         * 原始的price信息
+         * 如果是币币交易的，则是币币交易的price
+         * 是未经修改的原始价格信息，使用时需要进行转换的
+         */
+        private Double oriPrice;
+
+        /**
+         * 归一化的价格信息
+         * 目前是所有的价格都归一化到CNY计算
+         */
+        private Double normalizePrice;
 
         private Double amount;
+
+        /**
+         * 总的归一化价格
+         * normalizePrice * amount
+         */
+        private Double totalNormalizePrice;
 
         /**
          * 累计？？？

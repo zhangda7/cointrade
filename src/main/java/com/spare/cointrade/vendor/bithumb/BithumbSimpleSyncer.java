@@ -43,16 +43,17 @@ public class BithumbSimpleSyncer implements Runnable {
         listingInfoMonitor = AkkaContext.getSystem().actorSelection(
                 AkkaContext.getFullActorName(CoinTradeConstants.ACTOR_LISTING_INFO_MONITOR));
         scheduledExecutorService = Executors.newScheduledThreadPool(1, new DefaultThreadFactory("BithumbSimpleSyncer"));
-        scheduledExecutorService.scheduleWithFixedDelay(this, 5, 5, TimeUnit.SECONDS);
+        scheduledExecutorService.scheduleWithFixedDelay(this, 5, 2, TimeUnit.SECONDS);
     }
 
     @Override
     public void run() {
         try {
-                syncOneCoin(CoinType.BTC);
-                syncOneCoin(CoinType.ETH);
-                syncOneCoin(CoinType.LTC);
-                syncOneCoin(CoinType.QTUM);
+            syncOneCoin(CoinType.BTC);
+            syncOneCoin(CoinType.ETH);
+            syncOneCoin(CoinType.LTC);
+//            syncOneCoin(CoinType.BCC);
+//          syncOneCoin(CoinType.QTUM);
 //            HashMap<String, String> rgParams = new HashMap<String, String>();
 //            String result = api.callApi("/public/ticker/BTG", rgParams);
 //            System.out.println(result);
@@ -95,10 +96,11 @@ public class BithumbSimpleSyncer implements Runnable {
         }
         for (OrderBookInfo.ListingPair listingPair : listingPairList) {
             ListingDepth.DepthInfo depthInfo = listingDepth.new DepthInfo();
-//            depthInfo.setPrice(listingPair.getPrice());
-            depthInfo.setPrice(listingPair.getPrice() * ExchangeContext.KRW2CNY());
+            depthInfo.setOriPrice(listingPair.getPrice());
+            depthInfo.setNormalizePrice(listingPair.getPrice() * ExchangeContext.KRW2CNY());
             depthInfo.setAmount(listingPair.getQuantity());
-            listingDepth.getDepthInfoMap().put(depthInfo.getPrice(), depthInfo);
+            depthInfo.setTotalNormalizePrice(depthInfo.getNormalizePrice() * depthInfo.getAmount());
+            listingDepth.getDepthInfoMap().put(depthInfo.getNormalizePrice(), depthInfo);
         }
         return listingDepth;
     }

@@ -164,9 +164,9 @@ public class WebSocketUtils extends WebSocketClient {
 //		ListingDepth listingDepth = new ListingDepth();
 		for (List<Double> one : depths) {
 			ListingDepth.DepthInfo depthInfo = listingDepth.new DepthInfo();
-			depthInfo.setPrice(one.get(0));
+			depthInfo.setOriPrice(one.get(0));
 			depthInfo.setAmount(one.get(1));
-			listingDepth.getDepthInfoMap().put(depthInfo.getPrice(), depthInfo);
+			listingDepth.getDepthInfoMap().put(depthInfo.getOriPrice(), depthInfo);
 		}
 		return listingDepth;
 	}

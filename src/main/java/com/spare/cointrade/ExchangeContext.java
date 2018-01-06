@@ -1,5 +1,7 @@
 package com.spare.cointrade;
 
+import com.spare.cointrade.model.CoinType;
+
 public class ExchangeContext {
 
     public static double KRW2CNY() {
@@ -8,6 +10,15 @@ public class ExchangeContext {
 
     public static double USD2CNY() {
         return 6.4915;
+    }
+
+    /**
+     * 设定的归一化的币种
+     * 目前设定为CNY
+     * @return
+     */
+    public static CoinType normalizeCoinType() {
+        return CoinType.CNY;
     }
 
 }

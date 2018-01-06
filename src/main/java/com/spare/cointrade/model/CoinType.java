@@ -12,6 +12,8 @@ public enum CoinType {
 
     BCH,
 
+    BCC,
+
     QTUM,
 
     USDT,
@@ -26,6 +28,11 @@ public enum CoinType {
     /**
      * 韩币
      */
-    KRW;
+    KRW,
+
+    /**
+     * 最终代币的总称，方便程序中使用同一key表示
+     */
+    MONRY;
 
 }

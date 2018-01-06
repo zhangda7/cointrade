@@ -87,9 +87,9 @@ public class BuissnesWebSocketServiceImpl implements WebSocketService {
 //		ListingDepth listingDepth = new ListingDepth();
 		for (List<String> one : depths) {
 			ListingDepth.DepthInfo depthInfo = listingDepth.new DepthInfo();
-			depthInfo.setPrice(Double.parseDouble(one.get(0)));
+			depthInfo.setOriPrice(Double.parseDouble(one.get(0)));
 			depthInfo.setAmount(Double.parseDouble(one.get(1)));
-			listingDepth.getDepthInfoMap().put(depthInfo.getPrice(), depthInfo);
+			listingDepth.getDepthInfoMap().put(depthInfo.getOriPrice(), depthInfo);
 		}
 		return listingDepth;
 	}

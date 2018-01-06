@@ -9,6 +9,8 @@ public class RestfulPage {
 
     private String msg;
 
+    private int count;
+
     private String data;
 
 }

@@ -3,6 +3,7 @@ package com.spare.cointrade.actor.monitor;
 import akka.actor.AbstractActor;
 import akka.actor.Props;
 import com.spare.cointrade.actor.trade.TradeJudgeV2;
+import com.spare.cointrade.actor.trade.TradeJudgeV3;
 import com.spare.cointrade.model.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,11 +32,15 @@ public class ListingInfoMonitor extends AbstractActor {
      */
     public static Map<String, ListingFullInfo> listingFullInfoMap = new ConcurrentHashMap<>();
 
+    public static Map<CoinType, OrderBookEntry> chanceTradeMap = new ConcurrentHashMap<>();
+
+    private TradeJudgeV3 tradeJudgeV3 = new TradeJudgeV3();
+
     @Override
     public Receive createReceive() {
         return receiveBuilder().match(ListingFullInfo.class, (listingFullInfo -> {
             try {
-                logger.info("Receive {}", listingFullInfo);
+//                logger.info("Receive {}", listingFullInfo);
                 String key = listingFullInfo.toKey();
                 if(listingFullInfo.getInfoStatus() != null &&
                         listingFullInfo.getInfoStatus().equals(InfoStatus.CLEAR)) {
@@ -56,6 +61,9 @@ public class ListingInfoMonitor extends AbstractActor {
                     clearAndSetListingInfo(listingFullInfoMap.get(key), listingFullInfo);
                 }
 
+                tradeJudgeV3.findTradeChance();
+                //检查是否可以交易
+//                checkTradeChance();
 //                judgeClearCache();
 //                parseHuobi(depth);
             } catch (Exception e) {
@@ -132,10 +140,10 @@ public class ListingInfoMonitor extends AbstractActor {
         for (ListingDepth.DepthInfo depthInfo : target.getDepthInfoMap().values()) {
             //hard code double precision
             if(depthInfo.getAmount() == 0) {
-                source.getDepthInfoMap().remove(depthInfo.getPrice());
+                source.getDepthInfoMap().remove(depthInfo.getOriPrice());
                 continue;
             }
-            source.getDepthInfoMap().put(depthInfo.getPrice(), depthInfo);
+            source.getDepthInfoMap().put(depthInfo.getOriPrice(), depthInfo);
         }
     }
 

@@ -26,4 +26,6 @@ hs_err_pid*
 *.iml
 target/
 *.properties
+*.exe
+*.db
 >>>>>>> release-1.0.0

@@ -7,6 +7,7 @@ import com.alibaba.fastjson.JSONObject;
 import com.spare.cointrade.actor.monitor.ListingInfoMonitor;
 import com.spare.cointrade.actor.trade.TradeJudge;
 import com.spare.cointrade.actor.trade.TradeJudgeV2;
+import com.spare.cointrade.actor.trade.TradeJudgeV3;
 import com.spare.cointrade.model.*;
 import com.spare.cointrade.service.TradeHistoryService;
 import org.slf4j.Logger;
@@ -19,6 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Created by dada on 2017/7/16.
@@ -65,9 +67,16 @@ public class StatusController {
         return listingBuyInfo(TradePlatform.valueOf(platform), CoinType.valueOf(sourcecoin));
     }
 
-    @RequestMapping("/listingDelta")
-    public String listingDelta(@RequestParam("platform") String platform, @RequestParam("sourcecoin") String sourcecoin) {
-        return listingBuyInfo(TradePlatform.valueOf(platform), CoinType.valueOf(sourcecoin));
+    @RequestMapping("/listingPriceDelta")
+    public String listingPriceDelta() {
+        RestfulPage restfulPage = new RestfulPage();
+        restfulPage.setCode(CODE_SUCCESS);
+//        JSONArray jsonArray =
+//        for(Map.Entry<CoinType, OrderBookEntry> entryEntry : TradeJudgeV3.chanceTradeMap.entrySet()) {
+//
+//        }
+        restfulPage.setData(JSON.toJSONString(TradeJudgeV3.chanceTradeMap.values()));
+        return JSON.toJSONString(restfulPage);
     }
 
     @RequestMapping("/listingTradeHistory")

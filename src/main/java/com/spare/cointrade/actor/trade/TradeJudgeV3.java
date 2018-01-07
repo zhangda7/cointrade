@@ -10,8 +10,7 @@ import com.spare.cointrade.trade.AccountManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class TradeJudgeV3 {
@@ -22,7 +21,7 @@ public class TradeJudgeV3 {
 //        return Props.create(TradeJudgeV3.class, () -> new TradeJudgeV3());
 //    }
 
-    public static Map<CoinType, OrderBookEntry> chanceTradeMap = new ConcurrentHashMap<>();
+    public static Map<String, OrderBookEntry> chanceTradeMap = new ConcurrentHashMap<>();
 
 //    @Override
 //    public Receive createReceive() {
@@ -214,35 +213,80 @@ public class TradeJudgeV3 {
                 }
                 fullInfoMap.put(entry.getValue().getTradePlatform(), entry.getValue());
             }
-            OrderBookEntry orderBookEntry = checkOneCoinTradeChance(coinType, fullInfoMap);
-            if(orderBookEntry == null) {
+            Map<String, OrderBookEntry> orderBookEntryMap = checkOneCoinTradeChance(coinType, fullInfoMap);
+            if(orderBookEntryMap == null) {
                 continue;
             }
-            chanceTradeMap.put(coinType, orderBookEntry);
+            chanceTradeMap.putAll(orderBookEntryMap);
         }
     }
 
-    private OrderBookEntry checkOneCoinTradeChance(CoinType coinType, Map<TradePlatform, ListingFullInfo> fullInfoMap) {
+    private Map<String, OrderBookEntry> checkOneCoinTradeChance(CoinType coinType, Map<TradePlatform, ListingFullInfo> fullInfoMap) {
         if(fullInfoMap.size() < 2) {
             logger.warn("Coin {} list is {} < 2, just skip", coinType, fullInfoMap.size());
             return null;
         }
-        //FIXME 后面多个平台时肯定不能hardcode了
-        ListingFullInfo fullInfo1 = fullInfoMap.get(TradePlatform.BINANCE);
-        ListingFullInfo fullInfo2 = fullInfoMap.get(TradePlatform.BITHUMB);
+        Map<String, OrderBookEntry> orderBookEntryMap = new HashMap<>();
+        Iterator<TradePlatform> tradePlatformIterable = fullInfoMap.keySet().iterator();
+        TradePlatform pre = null;
+        while (tradePlatformIterable.hasNext()) {
+            if(pre == null) {
+                pre = tradePlatformIterable.next();
+            }
+            TradePlatform cur = tradePlatformIterable.next();
+            if(cur == null) {
+                break;
+            }
+            ListingFullInfo fullInfo1 = fullInfoMap.get(pre);
+            ListingFullInfo fullInfo2 = fullInfoMap.get(cur);
+            OrderBookEntry orderBookEntry = checkTradeChanceBy2Platform(coinType, fullInfo1, fullInfo2);
+            orderBookEntryMap.put(orderBookEntry.toKey(), orderBookEntry);
+            pre = cur;
+        }
+        return orderBookEntryMap;
+
+//        //FIXME 后面多个平台时肯定不能hardcode了
+//        ListingFullInfo fullInfo1 = fullInfoMap.get(TradePlatform.BINANCE);
+//        ListingFullInfo fullInfo2 = fullInfoMap.get(TradePlatform.BITHUMB);
+//        double delta = fullInfo1.getSellDepth().getDepthInfoMap().firstEntry().getValue().getNormalizePrice() -
+//                fullInfo2.getSellDepth().getDepthInfoMap().firstEntry().getValue().getNormalizePrice();
+//
+//        double amount = Math.min(fullInfo1.getSellDepth().getDepthInfoMap().firstEntry().getValue().getNormalizePrice(),
+//                fullInfo2.getSellDepth().getDepthInfoMap().firstEntry().getValue().getNormalizePrice());
+//
+//        OrderBookEntry orderBookEntry = new OrderBookEntry();
+//        orderBookEntry.setCoinType(coinType);
+//        orderBookEntry.setDelta(delta);
+//        orderBookEntry.setAmount(amount);
+//        orderBookEntry.setNormaliseDelta(10000 /
+//                fullInfo1.getSellDepth().getDepthInfoMap().firstEntry().getValue().getNormalizePrice() *
+//                fullInfo2.getSellDepth().getDepthInfoMap().firstEntry().getValue().getNormalizePrice() - 10000);
+//        return orderBookEntry;
+    }
+
+    /**
+     * 仅计算2个平台关于某一个币的价格差
+     * @param coinType
+     * @param fullInfo1
+     * @param fullInfo2
+     * @return
+     */
+    private OrderBookEntry checkTradeChanceBy2Platform(CoinType coinType, ListingFullInfo fullInfo1, ListingFullInfo fullInfo2) {
         double delta = fullInfo1.getSellDepth().getDepthInfoMap().firstEntry().getValue().getNormalizePrice() -
                 fullInfo2.getSellDepth().getDepthInfoMap().firstEntry().getValue().getNormalizePrice();
 
-        double amount = Math.min(fullInfo1.getSellDepth().getDepthInfoMap().firstEntry().getValue().getNormalizePrice(),
-                fullInfo2.getSellDepth().getDepthInfoMap().firstEntry().getValue().getNormalizePrice());
+        double amount = Math.min(fullInfo1.getSellDepth().getDepthInfoMap().firstEntry().getValue().getAmount(),
+                fullInfo2.getSellDepth().getDepthInfoMap().firstEntry().getValue().getAmount());
 
         OrderBookEntry orderBookEntry = new OrderBookEntry();
         orderBookEntry.setCoinType(coinType);
-        orderBookEntry.setDelta(delta);
         orderBookEntry.setAmount(amount);
+        orderBookEntry.setDelta(delta);
+        orderBookEntry.setPlatform1(fullInfo1.getTradePlatform());
+        orderBookEntry.setPlatform2(fullInfo2.getTradePlatform());
         orderBookEntry.setNormaliseDelta(10000 /
-                fullInfo1.getSellDepth().getDepthInfoMap().firstEntry().getValue().getNormalizePrice() *
-                fullInfo2.getSellDepth().getDepthInfoMap().firstEntry().getValue().getNormalizePrice() - 10000);
+                fullInfo2.getSellDepth().getDepthInfoMap().firstEntry().getValue().getNormalizePrice() *
+                fullInfo1.getSellDepth().getDepthInfoMap().firstEntry().getValue().getNormalizePrice() - 10000);
         return orderBookEntry;
     }
 

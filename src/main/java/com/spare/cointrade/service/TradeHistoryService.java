@@ -1,6 +1,8 @@
 package com.spare.cointrade.service;
 
+import com.spare.cointrade.ExchangeContext;
 import com.spare.cointrade.model.*;
+import com.sun.org.apache.xml.internal.resolver.readers.ExtendedXMLCatalogReader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -75,6 +77,11 @@ public class TradeHistoryService {
             tradeHistory.setCoinType(CoinType.valueOf(rs.getString("coin_type")));
             tradeHistory.setTargetCoinType(CoinType.valueOf(rs.getString("target_coin_type")));
             tradeHistory.setPrice(rs.getDouble("price"));
+            if(tradeHistory.getTradePlatform().equals(TradePlatform.BITHUMB)) {
+                tradeHistory.setNormalizePrice(tradeHistory.getPrice() * ExchangeContext.KRW2CNY());
+            } else if(tradeHistory.getTradePlatform().equals(TradePlatform.BINANCE)){
+                tradeHistory.setNormalizePrice(tradeHistory.getPrice() * ExchangeContext.USD2CNY());
+            }
             tradeHistory.setAmount(rs.getDouble("amount"));
             tradeHistory.setResult(TradeResult.valueOf(rs.getString("result")));
             tradeHistory.setAccountName(rs.getString("account_name"));

@@ -71,10 +71,6 @@ public class StatusController {
     public String listingPriceDelta() {
         RestfulPage restfulPage = new RestfulPage();
         restfulPage.setCode(CODE_SUCCESS);
-//        JSONArray jsonArray =
-//        for(Map.Entry<CoinType, OrderBookEntry> entryEntry : TradeJudgeV3.chanceTradeMap.entrySet()) {
-//
-//        }
         restfulPage.setData(JSON.toJSONString(TradeJudgeV3.chanceTradeMap.values()));
         return JSON.toJSONString(restfulPage);
     }

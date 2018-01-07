@@ -15,6 +15,8 @@ public class SignalTrade {
 
     private Double price;
 
+    private Double normalizePrice;
+
     private Double amount;
 
 }

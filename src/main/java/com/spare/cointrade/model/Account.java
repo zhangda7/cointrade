@@ -21,4 +21,13 @@ public class Account {
 
     private Map<CoinType, Balance> balanceMap;
 
+    public Balance getMoneyBalance() {
+        if(this.tradePlatform.equals(TradePlatform.BITHUMB)) {
+            return this.balanceMap.get(CoinType.KRW);
+        } else if(this.tradePlatform.equals(TradePlatform.BINANCE)) {
+            return this.balanceMap.get(CoinType.CNY);
+        }
+        return null;
+    }
+
 }

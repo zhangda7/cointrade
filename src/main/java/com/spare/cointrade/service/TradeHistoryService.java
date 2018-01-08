@@ -2,7 +2,6 @@ package com.spare.cointrade.service;
 
 import com.spare.cointrade.ExchangeContext;
 import com.spare.cointrade.model.*;
-import com.sun.org.apache.xml.internal.resolver.readers.ExtendedXMLCatalogReader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

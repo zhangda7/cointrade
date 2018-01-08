@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -75,19 +76,41 @@ public class StatusController {
         return JSON.toJSONString(restfulPage);
     }
 
+    @RequestMapping("/listingNormalizeProfit")
+    public String listingNormalizeProfit() {
+        RestfulPage restfulPage = new RestfulPage();
+        restfulPage.setCode(CODE_SUCCESS);
+        restfulPage.setData(String.valueOf(TradeJudgeV3.normalizeProfit.getValue()));
+        return JSON.toJSONString(restfulPage);
+    }
+
     @RequestMapping("/listingTradeHistory")
-    public String listingTradeHistory() {
+    public String listingTradeHistory(@RequestParam(value = "platform", required = false) String platform) {
         RestfulPage restfulPage = new RestfulPage();
         restfulPage.setCode(CODE_SUCCESS);
         try {
             List<TradeHistory> tradeHistoryList = TradeHistoryService.INSTANCE.list();
-            restfulPage.setCount(tradeHistoryList.size());
-            restfulPage.setData(JSON.toJSONString(tradeHistoryList));
+            if(platform != null && ! platform.equalsIgnoreCase("UNDEFINED")) {
+                List<TradeHistory> newList = new ArrayList<>();
+                TradePlatform tradePlatform = TradePlatform.valueOf(platform.toUpperCase());
+                for (TradeHistory tradeHistory : tradeHistoryList) {
+                    if(! tradeHistory.getTradePlatform().equals(tradePlatform)) {
+                        continue;
+                    }
+                    newList.add(tradeHistory);
+                }
+                restfulPage.setCount(newList.size());
+                restfulPage.setData(JSON.toJSONString(newList));
+            } else {
+                restfulPage.setCount(tradeHistoryList.size());
+                restfulPage.setData(JSON.toJSONString(tradeHistoryList));
+            }
             return JSON.toJSONString(restfulPage);
         } catch (Exception e) {
             logger.error("ERROR ", e);
         }
         restfulPage.setCode(CODE_FAIL);
+        restfulPage.setData("");
         return JSON.toJSONString(restfulPage);
     }
 

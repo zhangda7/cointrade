@@ -1,7 +1,5 @@
 package com.spare.cointrade.actor.trade;
 
-import akka.actor.AbstractActor;
-import akka.actor.Props;
 import com.alibaba.fastjson.JSON;
 import com.spare.cointrade.actor.monitor.ListingInfoMonitor;
 import com.spare.cointrade.model.*;
@@ -24,6 +22,8 @@ public class TradeJudgeV3 {
     private static final Double MIN_TRADE_AMOUNT = 0.001;
 
     public static Map<String, OrderBookEntry> chanceTradeMap = new ConcurrentHashMap<>();
+
+    public static Ewma normalizeProfit = new Ewma();
 
 //    @Override
 //    public Receive createReceive() {
@@ -58,49 +58,45 @@ public class TradeJudgeV3 {
         tradeHistory.setPreAccountTargetAmount(targetBalance.getFreeAmount());
         if(signalTrade.getTradeAction().equals(TradeAction.BUY)) {
             sourceBalance.setFreeAmount(sourceBalance.getFreeAmount() + signalTrade.getAmount());
-            targetBalance.setFreeAmount(targetBalance.getFreeAmount() - signalTrade.getAmount());
+            targetBalance.setFreeAmount(targetBalance.getFreeAmount() - signalTrade.getAmount() * signalTrade.getPrice());
         } else if(signalTrade.getTradeAction().equals(TradeAction.SELL)) {
             sourceBalance.setFreeAmount(sourceBalance.getFreeAmount() - signalTrade.getAmount());
-            targetBalance.setFreeAmount(targetBalance.getFreeAmount() + signalTrade.getAmount());
+            targetBalance.setFreeAmount(targetBalance.getFreeAmount() + signalTrade.getAmount() * signalTrade.getPrice());
         } else {
             throw new IllegalArgumentException("Illegal trade action " + signalTrade.getTradeAction());
         }
         tradeHistory.setAfterAccountSourceAmount(sourceBalance.getFreeAmount());
         tradeHistory.setAfterAccountTargetAmount(targetBalance.getFreeAmount());
         tradeHistory.setAccountName(account.getAccountName());
-        logger.info("Prepare insert tradeHistory {}", JSON.toJSONString(tradeHistory));
+//        logger.info("Prepare insert tradeHistory {}", JSON.toJSONString(tradeHistory));
         TradeHistoryService.INSTANCE.insert(tradeHistory);
     }
 
     public void findTradeChance() {
         updateTradeChanceMap();
-        TradePair tradePair = findNormalTradeChance();
-        if(tradePair == null) {
+        List<TradePair> tradePairList = findNormalTradeChance();
+        if(tradePairList == null) {
             logger.warn("Not found trade pair for normal direction");
             return;
         }
-        logger.info("Find tradePair {}", JSON.toJSONString(tradePair));
-        doTrade(tradePair);
+        for(TradePair tradePair : tradePairList) {
+            logger.info("Find tradePair {}", JSON.toJSONString(tradePair));
+            doTrade(tradePair);
+        }
+
+        List<TradePair> reverseTradePairList = findReverseTradeChance();
+        if(reverseTradePairList == null) {
+            logger.warn("Not found reverse trade pair for normal direction");
+            return;
+        }
+        for(TradePair tradePair : reverseTradePairList) {
+            logger.info("Find reverse tradePair {}", JSON.toJSONString(tradePair));
+            doTrade(tradePair);
+        }
+
+
+
     }
-
-//    public String toBithumbKey(CoinType coinType) {
-//        StringBuilder sb = new StringBuilder(200);
-//        sb.append(TradePlatform.BITHUMB.name() + "_");
-//        sb.append(TradeType.COIN_COIN.name() + "_");
-//        sb.append(coinType.name() + "_");
-//        sb.append(CoinType.KRW.name() + "_");
-//        return sb.toString();
-//    }
-//
-//    public String toBinanceKey(CoinType coinType) {
-//        StringBuilder sb = new StringBuilder(200);
-//        sb.append(TradePlatform.BINANCE.name() + "_");
-//        sb.append(TradeType.COIN_COIN.name() + "_");
-//        sb.append(coinType.name() + "_");
-//        sb.append(CoinType.USDT.name() + "_");
-//        return sb.toString();
-//    }
-
 
     public String toiListingInfoKey(TradePlatform tradePlatform, CoinType coinType) {
         StringBuilder sb = new StringBuilder(200);
@@ -115,90 +111,65 @@ public class TradeJudgeV3 {
      * 即找最小差价和最大差价，进行盈利的交易
      * @return
      */
-    private TradePair findNormalTradeChance() {
-        OrderBookEntry minEntry = null;
-        OrderBookEntry maxEntry = null;
-        for(OrderBookEntry orderBookEntry : chanceTradeMap.values()) {
-            if(minEntry == null) {
-                minEntry = orderBookEntry;
-            }
-            if(maxEntry == null) {
-                maxEntry = orderBookEntry;
-            }
-            //实际是delta 差值
-            //使用绝对值进行计算
-            if(Math.abs(minEntry.getNormaliseDelta()) > Math.abs(orderBookEntry.getNormaliseDelta())) {
-                minEntry = orderBookEntry;
-            }
-            if(Math.abs(maxEntry.getNormaliseDelta()) < Math.abs(orderBookEntry.getNormaliseDelta())) {
-                maxEntry = orderBookEntry;
-            }
-        }
-        if(minEntry.getCoinType().equals(maxEntry.getCoinType())) {
-            return null;
-        }
-
-//        /**
-//         * 最小的一个归一化交易总值
-//         */
+    private List<TradePair> findNormalTradeChance() {
 //        double minTotalAmount = Math.min(maxEntry.getAmount() * maxEntry.getNormaliseDelta(), minEntry.getNormaliseDelta() * minEntry.getAmount());
+        List<TradePair> tradePairList = new ArrayList<>();
+        for(OrderBookEntry orderBookEntry : chanceTradeMap.values()) {
+//            logger.info("Find max and min entry {} {}", JSON.toJSONString(orderBookEntry), JSON.toJSONString(orderBookEntry));
+            TradePair maxDeltaPair = createTradePair(orderBookEntry);
+            if(maxDeltaPair == null) {
+                continue;
+            }
+            //注意，这里使用绝对值了
+            normalizeProfit.setValue(Math.abs(orderBookEntry.getNormaliseDelta()));
+            tradePairList.add(maxDeltaPair);
+        }
+        return tradePairList;
+    }
 
-        logger.info("Find max and min entry {} {}", JSON.toJSONString(maxEntry), JSON.toJSONString(minEntry));
+    /**
+     * 寻找正向的交易机会
+     * 即找最小差价和最大差价，进行盈利的交易
+     * @return
+     */
+    private List<TradePair> findReverseTradeChance() {
+        List<TradePair> tradePairList = new ArrayList<>();
+        for(OrderBookEntry orderBookEntry : chanceTradeMap.values()) {
+            if(Math.abs(orderBookEntry.getNormaliseDelta()) > normalizeProfit.getValue() * 0.95) {
+                continue;
+            }
 
-        TradePair maxDeltaPair = createTradePair(maxEntry);
-//        TradePair minDeltaPair = createTradePair(minEntry, false, minTotalAmount);
-        return maxDeltaPair;
-//        ListingFullInfo bithumnSell1 = ListingInfoMonitor.listingFullInfoMap.get(toiListingInfoKey(maxEntry.getmaxEntry.getCoinType()));
-//        ListingFullInfo binanceBuy1 = ListingInfoMonitor.listingFullInfoMap.get(toiListingInfoKey(maxEntry.getCoinType()));
-//        ListingFullInfo bithumnBuy1 = ListingInfoMonitor.listingFullInfoMap.get(toiListingInfoKey(minEntry.getCoinType()));
-//        ListingFullInfo binanceSell1 = ListingInfoMonitor.listingFullInfoMap.get(toiListingInfoKey(minEntry.getCoinType()));
+            logger.info("Can do reverse trade, cur delta {}, EWMA delta{}",
+                    orderBookEntry.getNormaliseDelta(), normalizeProfit.getValue(), JSON.toJSONString(orderBookEntry));
+            TradePair maxDeltaPair = createReverseTradePair(orderBookEntry);
+            if(maxDeltaPair == null) {
+                continue;
+            }
+            normalizeProfit.setValue(Math.abs(orderBookEntry.getNormaliseDelta()) * -1);
+            tradePairList.add(maxDeltaPair);
+        }
+        return tradePairList;
+    }
 
-//        double bithumbSellTotal = bithumnSell1.getBuyDepth().getDepthInfoMap().firstEntry().getValue().getTotalNormalizePrice();
-//        double binanceBuy1Total = binanceBuy1.getSellDepth().getDepthInfoMap().firstEntry().getValue().getTotalNormalizePrice();
-//
-//        double bithumbBuy1Total = bithumnBuy1.getSellDepth().getDepthInfoMap().firstEntry().getValue().getTotalNormalizePrice();
-//        double binanceSell1Total = binanceSell1.getBuyDepth().getDepthInfoMap().firstEntry().getValue().getTotalNormalizePrice();
-//        double minTotal = Math.min(Math.min(binanceBuy1Total, binanceSell1Total), Math.min(bithumbBuy1Total, bithumbSellTotal));
-//
-//        double bithumbSell1Amount = minTotal / bithumnSell1.getBuyDepth().getDepthInfoMap().firstEntry().getValue().getNormalizePrice();
-//        double binanceBuy1Amount = minTotal / binanceBuy1.getSellDepth().getDepthInfoMap().firstEntry().getValue().getNormalizePrice();
-//
-//        double maxDeltaMinAmount = Math.min(bithumbSell1Amount, binanceBuy1Amount);
-//        maxDeltaMinAmount = Math.min(maxDeltaMinAmount, Math.min(
-//                AccountManager.INSTANCE.getPlatformAccountMap().get(TradePlatform.BITHUMB).
-//                        getBalanceMap().get(maxEntry.getCoinType()).getFreeAmount(),
-//                AccountManager.INSTANCE.getPlatformAccountMap().get(TradePlatform.BINANCE).
-//                        getBalanceMap().get(maxEntry.getCoinType()).getFreeAmount()));
-//        if(! hasRemaingBalance(TradePlatform.BITHUMB, maxEntry.getCoinType(), maxDeltaMinAmount)) {
-//            return null;
-//        }
-//        if(! hasRemaingBalance(TradePlatform.BINANCE, maxEntry.getCoinType(), maxDeltaMinAmount)) {
-//            return null;
-//        }
-//        double bithumbBuy1Amount = minTotal / bithumnBuy1.getSellDepth().getDepthInfoMap().firstEntry().getValue().getNormalizePrice();
-//        double binanceSell1Amount = binanceSell1.getBuyDepth().getDepthInfoMap().firstEntry().getValue().getNormalizePrice();
-//
-//        double minDeltaMinAmount = Math.min(bithumbBuy1Amount, binanceSell1Amount);
-//        minDeltaMinAmount = Math.min(minDeltaMinAmount, Math.min(
-//                AccountManager.INSTANCE.getPlatformAccountMap().get(TradePlatform.BITHUMB).
-//                        getBalanceMap().get(minEntry.getCoinType()).getFreeAmount(),
-//                AccountManager.INSTANCE.getPlatformAccountMap().get(TradePlatform.BINANCE).
-//                        getBalanceMap().get(minEntry.getCoinType()).getFreeAmount()));
-//        if(! hasRemaingBalance(TradePlatform.BITHUMB, minEntry.getCoinType(), minDeltaMinAmount)) {
-//            return null;
-//        }
-//        if(! hasRemaingBalance(TradePlatform.BINANCE, minEntry.getCoinType(), minDeltaMinAmount)) {
-//            return null;
-//        }
-
-//        TradePair tradePair = new TradePair();
-////        //TODO 调整这里的price赋值
-////        tradePair.getSignalTradeList().add(makeOneTrade(TradePlatform.BITHUMB, maxEntry.getCoinType(), CoinType.KRW, TradeAction.SELL, 1.0, bithumbSell1Amount));
-////        tradePair.getSignalTradeList().add(makeOneTrade(TradePlatform.BINANCE, maxEntry.getCoinType(), CoinType.CNY, TradeAction.BUY, 1.0, binanceBuy1Amount));
-////        tradePair.getSignalTradeList().add(makeOneTrade(TradePlatform.BITHUMB, minEntry.getCoinType(), CoinType.KRW, TradeAction.BUY, 1.0, bithumbBuy1Amount));
-////        tradePair.getSignalTradeList().add(makeOneTrade(TradePlatform.BINANCE, minEntry.getCoinType(), CoinType.CNY, TradeAction.SELL, 1.0, binanceSell1Amount));
-//
-//        return tradePair;
+    /**
+     * 进行反转的交易判断
+     * 2种情况:
+     * 1.delta > 0， platform 1 > platform 2
+     *  platform 1 sell, platform 2 buy
+     *
+     * 2.delta < 0
+     *  platform 1 buy, platform 2 buy
+     * @param maxEntry
+     * @return
+     */
+    private TradePair createReverseTradePair(OrderBookEntry maxEntry) {
+        ListingFullInfo fullInfo1 = ListingInfoMonitor.listingFullInfoMap.get(toiListingInfoKey(maxEntry.getPlatform1(), maxEntry.getCoinType()));
+        ListingFullInfo fullInfo2 = ListingInfoMonitor.listingFullInfoMap.get(toiListingInfoKey(maxEntry.getPlatform2(), maxEntry.getCoinType()));
+        if(maxEntry.getDelta() > 0) {
+            return judgeAndMakePair(fullInfo1, fullInfo2, maxEntry);
+        } else {
+            return judgeAndMakePair(fullInfo2, fullInfo1, maxEntry);
+        }
     }
 
     /**
@@ -215,58 +186,84 @@ public class TradeJudgeV3 {
     private TradePair createTradePair(OrderBookEntry maxEntry) {
         ListingFullInfo fullInfo1 = ListingInfoMonitor.listingFullInfoMap.get(toiListingInfoKey(maxEntry.getPlatform1(), maxEntry.getCoinType()));
         ListingFullInfo fullInfo2 = ListingInfoMonitor.listingFullInfoMap.get(toiListingInfoKey(maxEntry.getPlatform2(), maxEntry.getCoinType()));
-        double minAmount = 0.0;
-        TradePair tradePair = new TradePair();
         if(maxEntry.getDelta() > 0) {
-            double maxSellAmount = Math.min(fullInfo1.getBuyDepth().getDepthInfoMap().firstEntry().getValue().getAmount(),
-                    AccountManager.INSTANCE.getFreeAmount(fullInfo1.getTradePlatform(), maxEntry.getCoinType()));
-
-            double maxBuyAmount = AccountManager.INSTANCE.getNormalizeCNY(fullInfo2.getTradePlatform()) /
-                    fullInfo2.getSellDepth().getDepthInfoMap().firstEntry().getValue().getNormalizePrice();
-
-            minAmount = Math.min(maxSellAmount, maxBuyAmount);
-
-            if(minAmount < MIN_TRADE_AMOUNT) {
-                return null;
-            }
-            tradePair.getSignalTradeList().add(makeOneTrade(fullInfo1.getTradePlatform(),
-                    maxEntry.getCoinType(), CoinType.MONRY,
-                    TradeAction.SELL,
-                    fullInfo1.getBuyDepth().getDepthInfoMap().firstEntry().getValue().getOriPrice(), minAmount,
-                    fullInfo1.getBuyDepth().getDepthInfoMap().firstEntry().getValue().getNormalizePrice()));
-            tradePair.getSignalTradeList().add(makeOneTrade(fullInfo2.getTradePlatform(),
-                    maxEntry.getCoinType(), CoinType.MONRY,
-                    TradeAction.BUY,
-                    fullInfo2.getBuyDepth().getDepthInfoMap().firstEntry().getValue().getOriPrice(), minAmount,
-                    fullInfo2.getBuyDepth().getDepthInfoMap().firstEntry().getValue().getNormalizePrice()));
-            return tradePair;
+            return judgeAndMakePair(fullInfo2, fullInfo1, maxEntry);
+//            double maxSellAmount = Math.min(fullInfo1.getBuyDepth().getDepthInfoMap().firstEntry().getValue().getAmount(),
+//                    AccountManager.INSTANCE.getFreeAmount(fullInfo1.getTradePlatform(), maxEntry.getCoinType()));
+//
+//            double maxBuyAmount = AccountManager.INSTANCE.getNormalizeCNY(fullInfo2.getTradePlatform()) /
+//                    fullInfo2.getSellDepth().getDepthInfoMap().firstEntry().getValue().getNormalizePrice();
+//
+//            minAmount = Math.min(maxSellAmount, maxBuyAmount);
+//
+//            if(minAmount < MIN_TRADE_AMOUNT) {
+//                return null;
+//            }
+//            tradePair.getSignalTradeList().add(makeOneTrade(fullInfo1.getTradePlatform(),
+//                    maxEntry.getCoinType(), CoinType.MONRY,
+//                    TradeAction.SELL,
+//                    fullInfo1.getBuyDepth().getDepthInfoMap().firstEntry().getValue().getOriPrice(), minAmount,
+//                    fullInfo1.getBuyDepth().getDepthInfoMap().firstEntry().getValue().getNormalizePrice()));
+//            tradePair.getSignalTradeList().add(makeOneTrade(fullInfo2.getTradePlatform(),
+//                    maxEntry.getCoinType(), CoinType.MONRY,
+//                    TradeAction.BUY,
+//                    fullInfo2.getBuyDepth().getDepthInfoMap().firstEntry().getValue().getOriPrice(), minAmount,
+//                    fullInfo2.getBuyDepth().getDepthInfoMap().firstEntry().getValue().getNormalizePrice()));
+//            return tradePair;
         } else {
-            double maxSellAmount = Math.min(fullInfo2.getBuyDepth().getDepthInfoMap().firstEntry().getValue().getAmount(),
-                    AccountManager.INSTANCE.getFreeAmount(fullInfo2.getTradePlatform(), maxEntry.getCoinType()));
-
-            double maxBuyAmount = AccountManager.INSTANCE.getNormalizeCNY(fullInfo1.getTradePlatform()) /
-                    fullInfo1.getSellDepth().getDepthInfoMap().firstEntry().getValue().getNormalizePrice();
-
-            minAmount = Math.min(maxSellAmount, maxBuyAmount);
-
-            if(minAmount < MIN_TRADE_AMOUNT) {
-                return null;
-            }
-
-            tradePair.getSignalTradeList().add(makeOneTrade(fullInfo2.getTradePlatform(),
-                    maxEntry.getCoinType(), CoinType.MONRY,
-                    TradeAction.SELL,
-                    fullInfo2.getBuyDepth().getDepthInfoMap().firstEntry().getValue().getOriPrice(), minAmount,
-                    fullInfo2.getBuyDepth().getDepthInfoMap().firstEntry().getValue().getNormalizePrice()));
-
-            tradePair.getSignalTradeList().add(makeOneTrade(fullInfo1.getTradePlatform(),
-                    maxEntry.getCoinType(), CoinType.MONRY,
-                    TradeAction.BUY,
-                    fullInfo1.getBuyDepth().getDepthInfoMap().firstEntry().getValue().getOriPrice(), minAmount,
-                    fullInfo1.getBuyDepth().getDepthInfoMap().firstEntry().getValue().getNormalizePrice()));
-            return tradePair;
+            return judgeAndMakePair(fullInfo1, fullInfo2, maxEntry);
+//            double maxSellAmount = Math.min(fullInfo2.getBuyDepth().getDepthInfoMap().firstEntry().getValue().getAmount(),
+//                    AccountManager.INSTANCE.getFreeAmount(fullInfo2.getTradePlatform(), maxEntry.getCoinType()));
+//
+//            double maxBuyAmount = AccountManager.INSTANCE.getNormalizeCNY(fullInfo1.getTradePlatform()) /
+//                    fullInfo1.getSellDepth().getDepthInfoMap().firstEntry().getValue().getNormalizePrice();
+//
+//            minAmount = Math.min(maxSellAmount, maxBuyAmount);
+//
+//            if(minAmount < MIN_TRADE_AMOUNT) {
+//                return null;
+//            }
+//
+//            tradePair.getSignalTradeList().add(makeOneTrade(fullInfo2.getTradePlatform(),
+//                    maxEntry.getCoinType(), CoinType.MONRY,
+//                    TradeAction.SELL,
+//                    fullInfo2.getBuyDepth().getDepthInfoMap().firstEntry().getValue().getOriPrice(), minAmount,
+//                    fullInfo2.getBuyDepth().getDepthInfoMap().firstEntry().getValue().getNormalizePrice()));
+//
+//            tradePair.getSignalTradeList().add(makeOneTrade(fullInfo1.getTradePlatform(),
+//                    maxEntry.getCoinType(), CoinType.MONRY,
+//                    TradeAction.BUY,
+//                    fullInfo1.getBuyDepth().getDepthInfoMap().firstEntry().getValue().getOriPrice(), minAmount,
+//                    fullInfo1.getBuyDepth().getDepthInfoMap().firstEntry().getValue().getNormalizePrice()));
+//            return tradePair;
         }
 
+    }
+
+    private TradePair judgeAndMakePair(ListingFullInfo buySide, ListingFullInfo sellSide, OrderBookEntry orderBookEntry) {
+        TradePair tradePair = new TradePair();
+        double maxSellAmount = Math.min(sellSide.getBuyDepth().getDepthInfoMap().firstEntry().getValue().getAmount(),
+                AccountManager.INSTANCE.getFreeAmount(sellSide.getTradePlatform(), orderBookEntry.getCoinType()));
+
+        double maxBuyAmount = AccountManager.INSTANCE.getNormalizeCNY(buySide.getTradePlatform()) /
+                buySide.getSellDepth().getDepthInfoMap().firstEntry().getValue().getNormalizePrice();
+
+        double minAmount = Math.min(maxSellAmount, maxBuyAmount);
+
+        if(minAmount < MIN_TRADE_AMOUNT) {
+            return null;
+        }
+        tradePair.getSignalTradeList().add(makeOneTrade(sellSide.getTradePlatform(),
+                orderBookEntry.getCoinType(), CoinType.MONRY,
+                TradeAction.SELL,
+                sellSide.getBuyDepth().getDepthInfoMap().firstEntry().getValue().getOriPrice(), minAmount,
+                sellSide.getBuyDepth().getDepthInfoMap().firstEntry().getValue().getNormalizePrice()));
+        tradePair.getSignalTradeList().add(makeOneTrade(buySide.getTradePlatform(),
+                orderBookEntry.getCoinType(), CoinType.MONRY,
+                TradeAction.BUY,
+                buySide.getBuyDepth().getDepthInfoMap().firstEntry().getValue().getOriPrice(), minAmount,
+                buySide.getBuyDepth().getDepthInfoMap().firstEntry().getValue().getNormalizePrice()));
+        return tradePair;
     }
 
     /**

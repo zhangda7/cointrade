@@ -19,4 +19,6 @@ public class SignalTrade {
 
     private Double amount;
 
+    private TradeResult result;
+
 }

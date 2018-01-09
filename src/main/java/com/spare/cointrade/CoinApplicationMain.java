@@ -3,6 +3,7 @@ package com.spare.cointrade;
 import akka.actor.ActorSystem;
 import com.spare.cointrade.actor.consumer.HuobiConsumer;
 import com.spare.cointrade.actor.monitor.ListingInfoMonitor;
+import com.spare.cointrade.actor.monitor.TradeStateSyncer;
 import com.spare.cointrade.actor.trade.HuobiTrader;
 import com.spare.cointrade.actor.trade.OkCoinTrader;
 import com.spare.cointrade.actor.trade.TradeJudgeV2;
@@ -42,6 +43,7 @@ public class CoinApplicationMain {
 //        AkkaContext.getSystem().actorOf(HuobiTradeMonitor.props(), "huobiTradeMonitor");
         AkkaContext.getSystem().actorOf(OkCoinTrader.props(), "okCoinTrader");
         AkkaContext.getSystem().actorOf(ListingInfoMonitor.props(), CoinTradeConstants.ACTOR_LISTING_INFO_MONITOR);
+        AkkaContext.getSystem().actorOf(TradeStateSyncer.props(), CoinTradeConstants.ACTOR_TRADE_STATE_SYNCER);
 
     }
 

@@ -36,6 +36,8 @@ public class ListingInfoMonitor extends AbstractActor {
 
     private TradeJudgeV3 tradeJudgeV3 = new TradeJudgeV3();
 
+    private boolean canTrade = true;
+
     @Override
     public Receive createReceive() {
         return receiveBuilder().match(ListingFullInfo.class, (listingFullInfo -> {
@@ -68,6 +70,11 @@ public class ListingInfoMonitor extends AbstractActor {
 //                parseHuobi(depth);
             } catch (Exception e) {
                 logger.error("ERROR ", e);
+            }
+        })).match(TradePair.class, (tradePair -> {
+            if(tradePair.getTradePair_1().getResult().equals(TradeResult.SUCCESS) &&
+                    tradePair.getTradePair_2().getResult().equals(TradeResult.SUCCESS)) {
+                tradeJudgeV3.setCanTrade(true);
             }
         })).build();
     }

@@ -11,6 +11,8 @@ public class TradeHistory {
 
     private TradeAction tradeAction;
 
+    private String pairId;
+
     private CoinType coinType;
 
     private CoinType targetCoinType;
@@ -21,7 +23,14 @@ public class TradeHistory {
 
     private Double amount;
 
+    private String direction;
+
     private TradeResult result;
+
+    /**
+     * 本次盈利的数额，正数是盈利，负数是亏损
+     */
+    private Double profit;
 
     private String accountName;
 

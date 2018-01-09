@@ -9,6 +9,8 @@ public class CoinTradeConstants {
 
     public static final String ACTOR_LISTING_INFO_MONITOR = "listingInfoMonitor";
 
+    public static final String ACTOR_TRADE_STATE_SYNCER = "tradeStateSyncer";
+
     public static final String SOURCE_HUOBI = "HUOBI";
 
     public static final String SOURCE_OKCOIN = "okcoin";

@@ -10,22 +10,22 @@ public class SQLiteJDBCTest
 {
     public static void main( String args[] )
     {
-//        createTradeTable();
-        TradeHistory tradeHistory = new TradeHistory();
-        tradeHistory.setTradePlatform(TradePlatform.BITHUMB);
-        tradeHistory.setTradeAction(TradeAction.BUY);
-        tradeHistory.setCoinType(CoinType.BTC);
-        tradeHistory.setTargetCoinType(CoinType.QTUM);
-        tradeHistory.setPrice(100.02);
-        tradeHistory.setAmount(1.02);
-        tradeHistory.setResult(TradeResult.TRADING);
-        tradeHistory.setAccountName("hello");
-        tradeHistory.setPreAccountSourceAmount(2.01);
-        tradeHistory.setAfterAccountSourceAmount(0.01);
-        tradeHistory.setPreAccountTargetAmount(3.01);
-        tradeHistory.setAfterAccountTargetAmount(10.01);
-        tradeHistory.setComment("comment");
-        testInsert(tradeHistory);
+        createTradeTable();
+//        TradeHistory tradeHistory = new TradeHistory();
+//        tradeHistory.setTradePlatform(TradePlatform.BITHUMB);
+//        tradeHistory.setTradeAction(TradeAction.BUY);
+//        tradeHistory.setCoinType(CoinType.BTC);
+//        tradeHistory.setTargetCoinType(CoinType.QTUM);
+//        tradeHistory.setPrice(100.02);
+//        tradeHistory.setAmount(1.02);
+//        tradeHistory.setResult(TradeResult.TRADING);
+//        tradeHistory.setAccountName("hello");
+//        tradeHistory.setPreAccountSourceAmount(2.01);
+//        tradeHistory.setAfterAccountSourceAmount(0.01);
+//        tradeHistory.setPreAccountTargetAmount(3.01);
+//        tradeHistory.setAfterAccountTargetAmount(10.01);
+//        tradeHistory.setComment("comment");
+//        testInsert(tradeHistory);
     }
 
     private static void testConnection() {
@@ -99,10 +99,11 @@ public class SQLiteJDBCTest
             Class.forName("org.sqlite.JDBC");
             c = DriverManager.getConnection("jdbc:sqlite:coin.db");
             System.out.println("Opened database successfully");
-
             stmt = c.createStatement();
             String sql = "CREATE TABLE trade_history " +
                     "(ID INTEGER PRIMARY KEY NOT NULL," +
+                    " pairId TEXT, " +
+                    " direction TEXT, " +
                     " platform TEXT, " +
                     " action TEXT, " +
                     " coin_type TEXT, " +
@@ -110,6 +111,7 @@ public class SQLiteJDBCTest
                     "price REAL, " +
                     "amount REAL, " +
                     "result TEXT, " +
+                    "profit REAL, " +
                     "account_name TEXT, " +
                     "pre_account_source_amount REAL, " +
                     "after_account_source_amount REAL, " +

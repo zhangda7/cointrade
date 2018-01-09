@@ -1,15 +1,20 @@
 package com.spare.cointrade.actor.trade;
 
+import akka.actor.ActorRef;
+import akka.actor.ActorSelection;
 import com.alibaba.fastjson.JSON;
 import com.spare.cointrade.actor.monitor.ListingInfoMonitor;
 import com.spare.cointrade.model.*;
 import com.spare.cointrade.service.TradeHistoryService;
 import com.spare.cointrade.trade.AccountManager;
+import com.spare.cointrade.util.AkkaContext;
+import com.spare.cointrade.util.CoinTradeConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class TradeJudgeV3 {
 
@@ -18,6 +23,7 @@ public class TradeJudgeV3 {
 //    public static Props props () {
 //        return Props.create(TradeJudgeV3.class, () -> new TradeJudgeV3());
 //    }
+    private ActorSelection tradeStateSyncer;
 
     private static final Double MIN_TRADE_AMOUNT = 0.001;
 
@@ -25,7 +31,20 @@ public class TradeJudgeV3 {
 
     public static Ewma normalizeProfit = new Ewma();
 
-//    @Override
+    private static AtomicLong pairIdGenerator = new AtomicLong();
+
+    private static boolean canTrade = true;
+
+    public static void setCanTrade(boolean canTrade) {
+        TradeJudgeV3.canTrade = canTrade;
+    }
+
+    public TradeJudgeV3() {
+        this.tradeStateSyncer = AkkaContext.getSystem().actorSelection(
+                AkkaContext.getFullActorName(CoinTradeConstants.ACTOR_TRADE_STATE_SYNCER));
+    }
+
+    //    @Override
 //    public Receive createReceive() {
 //        return null;
 //    }
@@ -33,13 +52,28 @@ public class TradeJudgeV3 {
     private static final Double DECREASE_PERCENT = 0.8;
 
     private void doTrade(TradePair tradePair) {
-        for (SignalTrade signalTrade : tradePair.getSignalTradeList()) {
-            mockDoTrade(signalTrade);
+//        for (SignalTrade signalTrade : tradePair.getSignalTradeList()) {
+//            mockDoTrade(signalTrade);
+//        }
+        double total_1 = tradePair.getTradePair_1().getAmount() * tradePair.getTradePair_1().getNormalizePrice();
+        double total_2 = tradePair.getTradePair_2().getAmount() * tradePair.getTradePair_2().getNormalizePrice();
+        double profit = 0.0;
+        if(tradePair.getTradePair_1().getTradeAction().equals(TradeAction.SELL)) {
+            profit = total_1 - total_2;
+        } else {
+            profit = total_2 - total_1;
         }
+
+        mockDoTrade(tradePair, tradePair.getTradePair_1(), profit);
+        mockDoTrade(tradePair, tradePair.getTradePair_2(), profit);
+        canTrade = false;
+        this.tradeStateSyncer.tell(tradePair, ActorRef.noSender());
     }
 
-    private void mockDoTrade(SignalTrade signalTrade) {
+    private void mockDoTrade(TradePair tradePair, SignalTrade signalTrade, double profit) {
         TradeHistory tradeHistory = new TradeHistory();
+        tradeHistory.setPairId(tradePair.getPairId());
+        tradeHistory.setDirection(tradePair.getDirection());
         tradeHistory.setTradePlatform(signalTrade.getTradePlatform());
         tradeHistory.setTradeAction(signalTrade.getTradeAction());
         tradeHistory.setCoinType(signalTrade.getSourceCoin());
@@ -47,6 +81,7 @@ public class TradeJudgeV3 {
         tradeHistory.setPrice(signalTrade.getPrice());
         tradeHistory.setAmount(signalTrade.getAmount());
         tradeHistory.setResult(TradeResult.TRADING);
+        tradeHistory.setProfit(profit);
         Account account = AccountManager.INSTANCE.getPlatformAccountMap().get(signalTrade.getTradePlatform());
         Balance sourceBalance = account.getBalanceMap().get(signalTrade.getSourceCoin());
         Balance targetBalance = null;
@@ -74,6 +109,10 @@ public class TradeJudgeV3 {
 
     public void findTradeChance() {
         updateTradeChanceMap();
+//        if(! canTrade) {
+//            logger.info("Current has unconfirmed trade, can not trade now");
+//            return;
+//        }
         List<TradePair> tradePairList = findNormalTradeChance();
         if(tradePairList == null) {
             logger.warn("Not found trade pair for normal direction");
@@ -120,6 +159,8 @@ public class TradeJudgeV3 {
             if(maxDeltaPair == null) {
                 continue;
             }
+            maxDeltaPair.setPairId(String.valueOf(pairIdGenerator.incrementAndGet()));
+            maxDeltaPair.setDirection("forward");
             //注意，这里使用绝对值了
             normalizeProfit.setValue(Math.abs(orderBookEntry.getNormaliseDelta()));
             tradePairList.add(maxDeltaPair);
@@ -145,6 +186,8 @@ public class TradeJudgeV3 {
             if(maxDeltaPair == null) {
                 continue;
             }
+            maxDeltaPair.setPairId(String.valueOf(pairIdGenerator.incrementAndGet()));
+            maxDeltaPair.setDirection("reverse");
             normalizeProfit.setValue(Math.abs(orderBookEntry.getNormaliseDelta()) * -1);
             tradePairList.add(maxDeltaPair);
         }
@@ -188,54 +231,8 @@ public class TradeJudgeV3 {
         ListingFullInfo fullInfo2 = ListingInfoMonitor.listingFullInfoMap.get(toiListingInfoKey(maxEntry.getPlatform2(), maxEntry.getCoinType()));
         if(maxEntry.getDelta() > 0) {
             return judgeAndMakePair(fullInfo2, fullInfo1, maxEntry);
-//            double maxSellAmount = Math.min(fullInfo1.getBuyDepth().getDepthInfoMap().firstEntry().getValue().getAmount(),
-//                    AccountManager.INSTANCE.getFreeAmount(fullInfo1.getTradePlatform(), maxEntry.getCoinType()));
-//
-//            double maxBuyAmount = AccountManager.INSTANCE.getNormalizeCNY(fullInfo2.getTradePlatform()) /
-//                    fullInfo2.getSellDepth().getDepthInfoMap().firstEntry().getValue().getNormalizePrice();
-//
-//            minAmount = Math.min(maxSellAmount, maxBuyAmount);
-//
-//            if(minAmount < MIN_TRADE_AMOUNT) {
-//                return null;
-//            }
-//            tradePair.getSignalTradeList().add(makeOneTrade(fullInfo1.getTradePlatform(),
-//                    maxEntry.getCoinType(), CoinType.MONRY,
-//                    TradeAction.SELL,
-//                    fullInfo1.getBuyDepth().getDepthInfoMap().firstEntry().getValue().getOriPrice(), minAmount,
-//                    fullInfo1.getBuyDepth().getDepthInfoMap().firstEntry().getValue().getNormalizePrice()));
-//            tradePair.getSignalTradeList().add(makeOneTrade(fullInfo2.getTradePlatform(),
-//                    maxEntry.getCoinType(), CoinType.MONRY,
-//                    TradeAction.BUY,
-//                    fullInfo2.getBuyDepth().getDepthInfoMap().firstEntry().getValue().getOriPrice(), minAmount,
-//                    fullInfo2.getBuyDepth().getDepthInfoMap().firstEntry().getValue().getNormalizePrice()));
-//            return tradePair;
         } else {
             return judgeAndMakePair(fullInfo1, fullInfo2, maxEntry);
-//            double maxSellAmount = Math.min(fullInfo2.getBuyDepth().getDepthInfoMap().firstEntry().getValue().getAmount(),
-//                    AccountManager.INSTANCE.getFreeAmount(fullInfo2.getTradePlatform(), maxEntry.getCoinType()));
-//
-//            double maxBuyAmount = AccountManager.INSTANCE.getNormalizeCNY(fullInfo1.getTradePlatform()) /
-//                    fullInfo1.getSellDepth().getDepthInfoMap().firstEntry().getValue().getNormalizePrice();
-//
-//            minAmount = Math.min(maxSellAmount, maxBuyAmount);
-//
-//            if(minAmount < MIN_TRADE_AMOUNT) {
-//                return null;
-//            }
-//
-//            tradePair.getSignalTradeList().add(makeOneTrade(fullInfo2.getTradePlatform(),
-//                    maxEntry.getCoinType(), CoinType.MONRY,
-//                    TradeAction.SELL,
-//                    fullInfo2.getBuyDepth().getDepthInfoMap().firstEntry().getValue().getOriPrice(), minAmount,
-//                    fullInfo2.getBuyDepth().getDepthInfoMap().firstEntry().getValue().getNormalizePrice()));
-//
-//            tradePair.getSignalTradeList().add(makeOneTrade(fullInfo1.getTradePlatform(),
-//                    maxEntry.getCoinType(), CoinType.MONRY,
-//                    TradeAction.BUY,
-//                    fullInfo1.getBuyDepth().getDepthInfoMap().firstEntry().getValue().getOriPrice(), minAmount,
-//                    fullInfo1.getBuyDepth().getDepthInfoMap().firstEntry().getValue().getNormalizePrice()));
-//            return tradePair;
         }
 
     }
@@ -253,12 +250,12 @@ public class TradeJudgeV3 {
         if(minAmount < MIN_TRADE_AMOUNT) {
             return null;
         }
-        tradePair.getSignalTradeList().add(makeOneTrade(sellSide.getTradePlatform(),
+        tradePair.setTradePair_1(makeOneTrade(sellSide.getTradePlatform(),
                 orderBookEntry.getCoinType(), CoinType.MONRY,
                 TradeAction.SELL,
                 sellSide.getBuyDepth().getDepthInfoMap().firstEntry().getValue().getOriPrice(), minAmount,
                 sellSide.getBuyDepth().getDepthInfoMap().firstEntry().getValue().getNormalizePrice()));
-        tradePair.getSignalTradeList().add(makeOneTrade(buySide.getTradePlatform(),
+        tradePair.setTradePair_2(makeOneTrade(buySide.getTradePlatform(),
                 orderBookEntry.getCoinType(), CoinType.MONRY,
                 TradeAction.BUY,
                 buySide.getBuyDepth().getDepthInfoMap().firstEntry().getValue().getOriPrice(), minAmount,

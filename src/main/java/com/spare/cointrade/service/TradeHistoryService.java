@@ -36,8 +36,9 @@ public class TradeHistoryService {
         try {
             String sql = "INSERT INTO trade_history (platform, action, coin_type, target_coin_type, price, amount," +
                     "result, account_name, pre_account_source_amount, after_account_source_amount," +
-                    "pre_account_target_amount, after_account_target_amount, comment, gmt_created, gmt_modified)\n" +
-                    "VALUES ( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                    "pre_account_target_amount, after_account_target_amount, comment, gmt_created, gmt_modified, " +
+                    "pairId, direction, profit)\n" +
+                    "VALUES ( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
             PreparedStatement preparedStatement = this.connection.prepareStatement(sql);
             preparedStatement.setString(1, tradeHistory.getTradePlatform().name());
             preparedStatement.setString(2, tradeHistory.getTradeAction().name());
@@ -54,6 +55,26 @@ public class TradeHistoryService {
             preparedStatement.setString(13, tradeHistory.getComment());
             preparedStatement.setString(14, dateStr);
             preparedStatement.setString(15, dateStr);
+            preparedStatement.setString(16, tradeHistory.getPairId());
+            preparedStatement.setString(17, tradeHistory.getDirection());
+            preparedStatement.setDouble(18, tradeHistory.getProfit());
+
+            int ret = preparedStatement.executeUpdate();
+            return ret;
+        } catch ( Exception e ) {
+            logger.error("ERROR ", e);
+        }
+        return 0;
+    }
+
+    public int updatePairResult(String pairId, String result) {
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:SS");
+        String dateStr = sdf.format(new Date());
+        try {
+            String sql = "UPDATE trade_history SET result = ? WHERE pairId = ?";
+            PreparedStatement preparedStatement = this.connection.prepareStatement(sql);
+            preparedStatement.setString(1, result);
+            preparedStatement.setString(2, pairId);
             int ret = preparedStatement.executeUpdate();
             return ret;
         } catch ( Exception e ) {
@@ -71,6 +92,9 @@ public class TradeHistoryService {
         while (rs.next()) {
             TradeHistory tradeHistory = new TradeHistory();
             tradeHistory.setId(rs.getLong("id"));
+            tradeHistory.setPairId(rs.getString("pairId"));
+            tradeHistory.setDirection(rs.getString("direction"));
+            tradeHistory.setProfit(rs.getDouble("profit"));
             tradeHistory.setTradePlatform(TradePlatform.valueOf(rs.getString("platform")));
             tradeHistory.setTradeAction(TradeAction.valueOf(rs.getString("action")));
             tradeHistory.setCoinType(CoinType.valueOf(rs.getString("coin_type")));

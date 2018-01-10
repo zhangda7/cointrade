@@ -15,6 +15,10 @@ public class Ewma {
     }
 
     public void setValue(Double newVal) {
+        if(this.value == null) {
+            this.value = newVal;
+            return;
+        }
         this.value = (1 - thelta) * newVal + thelta * this.value;
     }
 

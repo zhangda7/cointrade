@@ -11,8 +11,14 @@ public class OrderBookEntry {
 
     private Double amount;
 
+    /**
+     * 价格高的平台
+     */
     private TradePlatform platform1;
 
+    /**
+     * 价格低的平台
+     */
     private TradePlatform platform2;
 
     /**

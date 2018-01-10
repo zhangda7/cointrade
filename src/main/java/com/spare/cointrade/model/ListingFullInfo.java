@@ -29,7 +29,15 @@ public class ListingFullInfo {
      */
     private ListingDepth sellDepth;
 
+    /**
+     * 实际数据中的时间戳
+     */
     private Long timestamp;
+
+    /**
+     * 该消息被更新的时间戳
+     */
+    private Long requestTs;
 
     private InfoStatus infoStatus;
 

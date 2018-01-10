@@ -4,6 +4,12 @@ import com.spare.cointrade.model.CoinType;
 
 public class ExchangeContext {
 
+    public static Double totalProfit = 0.0;
+
+    public static synchronized void addProfit(Double profit) {
+        totalProfit += profit;
+    }
+
     public static double KRW2CNY() {
         return 0.006107;
     }

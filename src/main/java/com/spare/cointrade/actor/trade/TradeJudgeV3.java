@@ -3,6 +3,7 @@ package com.spare.cointrade.actor.trade;
 import akka.actor.ActorRef;
 import akka.actor.ActorSelection;
 import com.alibaba.fastjson.JSON;
+import com.spare.cointrade.ExchangeContext;
 import com.spare.cointrade.actor.monitor.ListingInfoMonitor;
 import com.spare.cointrade.model.*;
 import com.spare.cointrade.service.TradeHistoryService;
@@ -25,7 +26,7 @@ public class TradeJudgeV3 {
 //    }
     private ActorSelection tradeStateSyncer;
 
-    private static final Double MIN_TRADE_AMOUNT = 0.001;
+    private static final Double MIN_TRADE_AMOUNT = 0.01;
 
     public static Map<String, OrderBookEntry> chanceTradeMap = new ConcurrentHashMap<>();
 
@@ -35,6 +36,8 @@ public class TradeJudgeV3 {
 
     private static boolean canTrade = true;
 
+    private Map<CoinType, Double> minCoinTradeAmountMap = new HashMap<>();
+
     public static void setCanTrade(boolean canTrade) {
         TradeJudgeV3.canTrade = canTrade;
     }
@@ -42,6 +45,9 @@ public class TradeJudgeV3 {
     public TradeJudgeV3() {
         this.tradeStateSyncer = AkkaContext.getSystem().actorSelection(
                 AkkaContext.getFullActorName(CoinTradeConstants.ACTOR_TRADE_STATE_SYNCER));
+        minCoinTradeAmountMap.put(CoinType.BTC, 0.0001);
+        minCoinTradeAmountMap.put(CoinType.LTC, 0.01);
+        minCoinTradeAmountMap.put(CoinType.ETH, 0.01);
     }
 
     //    @Override
@@ -63,7 +69,7 @@ public class TradeJudgeV3 {
         } else {
             profit = total_2 - total_1;
         }
-
+        ExchangeContext.addProfit(profit);
         mockDoTrade(tradePair, tradePair.getTradePair_1(), profit);
         mockDoTrade(tradePair, tradePair.getTradePair_2(), profit);
         canTrade = false;
@@ -105,6 +111,7 @@ public class TradeJudgeV3 {
         tradeHistory.setAccountName(account.getAccountName());
 //        logger.info("Prepare insert tradeHistory {}", JSON.toJSONString(tradeHistory));
         TradeHistoryService.INSTANCE.insert(tradeHistory);
+
     }
 
     public void findTradeChance() {
@@ -116,7 +123,7 @@ public class TradeJudgeV3 {
         List<TradePair> tradePairList = findNormalTradeChance();
         if(tradePairList == null) {
             logger.warn("Not found trade pair for normal direction");
-            return;
+//            return;
         }
         for(TradePair tradePair : tradePairList) {
             logger.info("Find tradePair {}", JSON.toJSONString(tradePair));
@@ -153,7 +160,15 @@ public class TradeJudgeV3 {
     private List<TradePair> findNormalTradeChance() {
 //        double minTotalAmount = Math.min(maxEntry.getAmount() * maxEntry.getNormaliseDelta(), minEntry.getNormaliseDelta() * minEntry.getAmount());
         List<TradePair> tradePairList = new ArrayList<>();
-        for(OrderBookEntry orderBookEntry : chanceTradeMap.values()) {
+        List<OrderBookEntry> entryList = new ArrayList<>();
+        entryList.addAll(chanceTradeMap.values());
+        Collections.sort(entryList, new Comparator<OrderBookEntry>() {
+            @Override
+            public int compare(OrderBookEntry o1, OrderBookEntry o2) {
+                return (int) (o2.getNormaliseDelta() - o1.getNormaliseDelta());
+            }
+        });
+        for(OrderBookEntry orderBookEntry : entryList) {
 //            logger.info("Find max and min entry {} {}", JSON.toJSONString(orderBookEntry), JSON.toJSONString(orderBookEntry));
             TradePair maxDeltaPair = createTradePair(orderBookEntry);
             if(maxDeltaPair == null) {
@@ -175,8 +190,16 @@ public class TradeJudgeV3 {
      */
     private List<TradePair> findReverseTradeChance() {
         List<TradePair> tradePairList = new ArrayList<>();
-        for(OrderBookEntry orderBookEntry : chanceTradeMap.values()) {
-            if(Math.abs(orderBookEntry.getNormaliseDelta()) > normalizeProfit.getValue() * 0.95) {
+        List<OrderBookEntry> entryList = new ArrayList<>();
+        entryList.addAll(chanceTradeMap.values());
+        Collections.sort(entryList, new Comparator<OrderBookEntry>() {
+            @Override
+            public int compare(OrderBookEntry o1, OrderBookEntry o2) {
+                return (int) (o1.getNormaliseDelta() - o2.getNormaliseDelta());
+            }
+        });
+        for(OrderBookEntry orderBookEntry : entryList) {
+            if(Math.abs(orderBookEntry.getNormaliseDelta()) > normalizeProfit.getValue() * 0.98) {
                 continue;
             }
 
@@ -247,7 +270,12 @@ public class TradeJudgeV3 {
 
         double minAmount = Math.min(maxSellAmount, maxBuyAmount);
 
-        if(minAmount < MIN_TRADE_AMOUNT) {
+        Double coinMinTradeAmount = minCoinTradeAmountMap.get(buySide.getSourceCoinType());
+        if(coinMinTradeAmount == null) {
+            coinMinTradeAmount = MIN_TRADE_AMOUNT;
+        }
+
+        if(minAmount < coinMinTradeAmount) {
             return null;
         }
         tradePair.setTradePair_1(makeOneTrade(sellSide.getTradePlatform(),
@@ -364,12 +392,21 @@ public class TradeJudgeV3 {
         OrderBookEntry orderBookEntry = new OrderBookEntry();
         orderBookEntry.setCoinType(coinType);
         orderBookEntry.setAmount(amount);
-        orderBookEntry.setDelta(delta);
-        orderBookEntry.setPlatform1(fullInfo1.getTradePlatform());
-        orderBookEntry.setPlatform2(fullInfo2.getTradePlatform());
-        orderBookEntry.setNormaliseDelta(10000 /
-                fullInfo2.getSellDepth().getDepthInfoMap().firstEntry().getValue().getNormalizePrice() *
-                fullInfo1.getSellDepth().getDepthInfoMap().firstEntry().getValue().getNormalizePrice() - 10000);
+        orderBookEntry.setDelta(Math.abs(delta));
+        if(delta >= 0) {
+            orderBookEntry.setPlatform1(fullInfo1.getTradePlatform());
+            orderBookEntry.setPlatform2(fullInfo2.getTradePlatform());
+            orderBookEntry.setNormaliseDelta(10000 /
+                    fullInfo2.getSellDepth().getDepthInfoMap().firstEntry().getValue().getNormalizePrice() *
+                    fullInfo1.getSellDepth().getDepthInfoMap().firstEntry().getValue().getNormalizePrice() - 10000);
+        } else {
+            orderBookEntry.setPlatform1(fullInfo2.getTradePlatform());
+            orderBookEntry.setPlatform2(fullInfo1.getTradePlatform());
+            orderBookEntry.setNormaliseDelta(10000 /
+                    fullInfo1.getSellDepth().getDepthInfoMap().firstEntry().getValue().getNormalizePrice() *
+                    fullInfo2.getSellDepth().getDepthInfoMap().firstEntry().getValue().getNormalizePrice() - 10000);
+        }
+
         return orderBookEntry;
     }
 

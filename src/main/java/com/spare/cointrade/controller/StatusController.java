@@ -4,6 +4,7 @@ import akka.actor.ActorRef;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import com.spare.cointrade.ExchangeContext;
 import com.spare.cointrade.actor.monitor.ListingInfoMonitor;
 import com.spare.cointrade.actor.trade.TradeJudge;
 import com.spare.cointrade.actor.trade.TradeJudgeV2;
@@ -66,6 +67,17 @@ public class StatusController {
     @RequestMapping("/listingPriceInfo")
     public String listingPriceInfo(@RequestParam("platform") String platform, @RequestParam("sourcecoin") String sourcecoin) {
         return listingBuyInfo(TradePlatform.valueOf(platform), CoinType.valueOf(sourcecoin));
+    }
+
+    @RequestMapping("/monitorStatus")
+    public String listingMonitorStatus() {
+        RestfulPage restfulPage = new RestfulPage();
+        restfulPage.setCode(CODE_SUCCESS);
+        JSONObject jsonObject = new JSONObject();
+        jsonObject.put("totalNomalizeProfit", String.valueOf(ExchangeContext.totalProfit));
+        jsonObject.put("normalizeProfit", String.valueOf(TradeJudgeV3.normalizeProfit.getValue()));
+        restfulPage.setData(JSON.toJSONString(jsonObject));
+        return JSON.toJSONString(restfulPage);
     }
 
     @RequestMapping("/listingPriceDelta")
@@ -157,6 +169,7 @@ public class StatusController {
             }
             retObject.put(key, jsonArray);
             retObject.put("lastDate", sdf.format(new Date(listingFullInfo.getTimestamp())));
+            retObject.put("lastRequestDate", sdf.format(new Date(listingFullInfo.getRequestTs())));
         }
         restfulPage.setData(JSON.toJSONString(retObject));
         return JSON.toJSONString(restfulPage);

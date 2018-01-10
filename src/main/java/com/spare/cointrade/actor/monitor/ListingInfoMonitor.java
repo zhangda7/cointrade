@@ -50,6 +50,7 @@ public class ListingInfoMonitor extends AbstractActor {
                     return;
                 }
                 if(! listingFullInfoMap.containsKey(key)) {
+                    listingFullInfo.setRequestTs(System.currentTimeMillis());
                     listingFullInfoMap.put(key, listingFullInfo);
                     return;
                 }
@@ -130,6 +131,7 @@ public class ListingInfoMonitor extends AbstractActor {
      */
     private void clearAndSetListingInfo(ListingFullInfo source, ListingFullInfo target) {
         source.setTimestamp(target.getTimestamp());
+        source.setRequestTs(System.currentTimeMillis());
         if(target.getBuyDepth() != null) {
             source.getBuyDepth().getDepthInfoMap().clear();
             updateOneDepth(source.getBuyDepth(), target.getBuyDepth());

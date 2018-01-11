@@ -331,8 +331,8 @@ public class TradeJudgeV3 {
      * 检查交易的机会
      */
     private void updateTradeChanceMap() {
-        CoinType[] toCheckedCoin = new CoinType[] {CoinType.BTC, CoinType.ETH, CoinType.LTC};
-        for (CoinType coinType : toCheckedCoin) {
+
+        for (CoinType coinType : ExchangeContext.toCheckedCoin) {
             Map<TradePlatform, ListingFullInfo> fullInfoMap = new HashMap<>();
             for (Map.Entry<String, ListingFullInfo> entry : ListingInfoMonitor.listingFullInfoMap.entrySet()) {
                 if(! entry.getValue().getSourceCoinType().equals(coinType)) {

@@ -52,8 +52,10 @@ public class BithumbSimpleSyncer implements Runnable {
             syncOneCoin(CoinType.BTC);
             syncOneCoin(CoinType.ETH);
             syncOneCoin(CoinType.LTC);
-//            syncOneCoin(CoinType.BCC);
-//          syncOneCoin(CoinType.QTUM);
+            syncOneCoin(CoinType.QTUM);
+            syncOneCoin(CoinType.EOS);
+            syncOneCoin(CoinType.BTG);
+
 //            HashMap<String, String> rgParams = new HashMap<String, String>();
 //            String result = api.callApi("/public/ticker/BTG", rgParams);
 //            System.out.println(result);

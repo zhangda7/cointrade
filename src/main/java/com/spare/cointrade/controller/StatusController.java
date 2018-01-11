@@ -13,6 +13,7 @@ import com.spare.cointrade.model.*;
 import com.spare.cointrade.service.TradeHistoryService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -97,26 +98,47 @@ public class StatusController {
     }
 
     @RequestMapping("/listingTradeHistory")
-    public String listingTradeHistory(@RequestParam(value = "platform", required = false) String platform) {
+    public String listingTradeHistory(@RequestParam(value = "tradePlatform", required = false) String platform,
+                                      @RequestParam(value = "page", required = false) Integer page,
+                                      @RequestParam(value = "limit", required = false) Integer limit,
+                                      @RequestParam(value = "direction", required = false) String direction) {
         RestfulPage restfulPage = new RestfulPage();
         restfulPage.setCode(CODE_SUCCESS);
         try {
             List<TradeHistory> tradeHistoryList = TradeHistoryService.INSTANCE.list();
-            if(platform != null && ! platform.equalsIgnoreCase("UNDEFINED")) {
-                List<TradeHistory> newList = new ArrayList<>();
-                TradePlatform tradePlatform = TradePlatform.valueOf(platform.toUpperCase());
-                for (TradeHistory tradeHistory : tradeHistoryList) {
-                    if(! tradeHistory.getTradePlatform().equals(tradePlatform)) {
+//            if(platform != null && ! platform.equalsIgnoreCase("UNDEFINED")) {
+            List<TradeHistory> newList = new ArrayList<>();
+            int skip = 0;
+            if(limit == null) {
+                limit = 30;
+            }
+            if(page != null) {
+                skip = limit * (page - 1);
+            }
+            int index = 0;
+            for (TradeHistory tradeHistory : tradeHistoryList) {
+                if(!StringUtils.isEmpty(platform)) {
+                    if(! tradeHistory.getTradePlatform().name().equals(platform)) {
                         continue;
                     }
-                    newList.add(tradeHistory);
                 }
-                restfulPage.setCount(newList.size());
-                restfulPage.setData(JSON.toJSONString(newList));
-            } else {
-                restfulPage.setCount(tradeHistoryList.size());
-                restfulPage.setData(JSON.toJSONString(tradeHistoryList));
+                if(! StringUtils.isEmpty(direction)) {
+                    if(! tradeHistory.getDirection().equals(direction)) {
+                        continue;
+                    }
+                }
+                if(index++ < skip) {
+                    continue;
+                }
+                if(newList.size() >= limit) {
+                    break;
+                }
+
+                newList.add(tradeHistory);
             }
+            restfulPage.setCount(tradeHistoryList.size());
+            restfulPage.setData(JSON.toJSONString(newList));
+//            }
             return JSON.toJSONString(restfulPage);
         } catch (Exception e) {
             logger.error("ERROR ", e);

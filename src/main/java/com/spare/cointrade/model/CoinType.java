@@ -14,7 +14,11 @@ public enum CoinType {
 
     BCC,
 
+    NEO,
+
     QTUM,
+
+    EOS,
 
     USDT,
 

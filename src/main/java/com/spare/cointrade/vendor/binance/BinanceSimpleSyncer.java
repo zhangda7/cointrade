@@ -66,7 +66,12 @@ public class BinanceSimpleSyncer implements Runnable {
             syncOneCoin(CoinType.BTC, CoinType.USDT, 5);
             syncOneCoin(CoinType.ETH, CoinType.USDT, count);
             syncOneCoin(CoinType.LTC, CoinType.USDT, count);
+            syncOneCoin(CoinType.QTUM, CoinType.BTC, count);
+            syncOneCoin(CoinType.EOS, CoinType.BTC, count);
+            syncOneCoin(CoinType.BTG, CoinType.BTC, count);
+
 //            syncOneCoin(CoinType.BCC, CoinType.USDT, count);
+//            syncOneCoin(CoinType.NEO, CoinType.USDT, count);
 
         } catch (Exception e) {
             logger.error("ERROR ", e);

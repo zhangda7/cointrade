@@ -25,9 +25,6 @@ public class TradeJudgeV3 {
 
     private static Logger tradeChanceLogger = LoggerFactory.getLogger(TradeChanceLog.class);
 
-    //    public static Props props () {
-//        return Props.create(TradeJudgeV3.class, () -> new TradeJudgeV3());
-//    }
     private ActorSelection tradeStateSyncer;
 
     private static final Double MIN_TRADE_AMOUNT = 0.01;
@@ -63,19 +60,10 @@ public class TradeJudgeV3 {
         minCoinTradeAmountMap.put(CoinType.ETH, 0.01);
     }
 
-    //    @Override
-//    public Receive createReceive() {
-//        return null;
-//    }
-
     private static final Double DECREASE_PERCENT = 0.8;
 
     private void doTrade(TradePair tradePair) {
-//        for (SignalTrade signalTrade : tradePair.getSignalTradeList()) {
-//            mockDoTrade(signalTrade);
-//        }
         if(! canTrade) {
-//            logger.debug("Current has unconfirmed trade, can not trade now");
             return;
         }
         tradePair.setPairId(String.valueOf(pairIdGenerator.incrementAndGet()));
@@ -273,12 +261,8 @@ public class TradeJudgeV3 {
                                        OrderBookEntry orderBookEntry, TradeDirection tradeDirection) {
         TradePair tradePair = new TradePair();
         tradePair.setTradeDirection(tradeDirection);
-//        double maxSellAmount = Math.min(sellSide.getBuyDepth().getDepthInfoMap().firstEntry().getValue().getAmount(),
-//                AccountManager.INSTANCE.getFreeAmount(sellSide.getTradePlatform(), orderBookEntry.getCoinType()));
         double maxSellAmount = Math.min(ListingDepthUtil.getLevelDepthInfo(sellSide.getBuyDepth(), MONITOR_DEPTH_LEVEL).getAmount(),
                 AccountManager.INSTANCE.getFreeAmount(sellSide.getTradePlatform(), orderBookEntry.getCoinType()));
-//        double maxBuyAmount = AccountManager.INSTANCE.getNormalizeCNY(buySide.getTradePlatform()) /
-//                buySide.getSellDepth().getDepthInfoMap().firstEntry().getValue().getNormalizePrice();
         double maxBuyAmount = AccountManager.INSTANCE.getNormalizeCNY(buySide.getTradePlatform()) /
                 ListingDepthUtil.getLevelDepthInfo(buySide.getSellDepth(), MONITOR_DEPTH_LEVEL).getNormalizePrice();
 
@@ -307,22 +291,12 @@ public class TradeJudgeV3 {
             return null;
         }
 
-//        tradePair.setTradePair_1(makeOneTrade(sellSide.getTradePlatform(),
-//                orderBookEntry.getCoinType(), CoinType.MONRY, // 应该为buySide.targetCoinType
-//                TradeAction.SELL,
-//                sellSide.getBuyDepth().getDepthInfoMap().firstEntry().getValue().getOriPrice(), minAmount,
-//                sellSide.getBuyDepth().getDepthInfoMap().firstEntry().getValue().getNormalizePrice()));
         ListingDepth.DepthInfo sellInfo = ListingDepthUtil.getLevelDepthInfo(sellSide.getBuyDepth(), MONITOR_DEPTH_LEVEL);
         tradePair.setTradePair_1(makeOneTrade(sellSide.getTradePlatform(),
                 orderBookEntry.getCoinType(), CoinType.MONRY, // 应该为buySide.targetCoinType
                 TradeAction.SELL,
                 sellInfo.getOriPrice(), minAmount,
                 sellInfo.getNormalizePrice()));
-//        tradePair.setTradePair_2(makeOneTrade(buySide.getTradePlatform(),
-//                orderBookEntry.getCoinType(), CoinType.MONRY,
-//                TradeAction.BUY,
-//                buySide.getBuyDepth().getDepthInfoMap().firstEntry().getValue().getOriPrice(), minAmount,
-//                buySide.getBuyDepth().getDepthInfoMap().firstEntry().getValue().getNormalizePrice()));
         //TODO FIXME 这里错了吧，应该是sell depth
         ListingDepth.DepthInfo buyInfo = ListingDepthUtil.getLevelDepthInfo(buySide.getBuyDepth(), MONITOR_DEPTH_LEVEL);
         tradePair.setTradePair_2(makeOneTrade(buySide.getTradePlatform(),
@@ -430,11 +404,6 @@ public class TradeJudgeV3 {
 
         double delta = fullSellInfo_1.getNormalizePrice() - fullSellInfo_2.getNormalizePrice();
         double amount = Math.min(fullSellInfo_1.getAmount(), fullSellInfo_2.getAmount());
-//        double delta = fullInfo1.getSellDepth().getDepthInfoMap().firstEntry().getValue().getNormalizePrice() -
-//                fullInfo2.getSellDepth().getDepthInfoMap().firstEntry().getValue().getNormalizePrice();
-//
-//        double amount = Math.min(fullInfo1.getSellDepth().getDepthInfoMap().firstEntry().getValue().getAmount(),
-//                fullInfo2.getSellDepth().getDepthInfoMap().firstEntry().getValue().getAmount());
 
         OrderBookEntry orderBookEntry = new OrderBookEntry();
         orderBookEntry.setCoinType(coinType);
@@ -443,18 +412,12 @@ public class TradeJudgeV3 {
         if(delta >= 0) {
             orderBookEntry.setPlatform1(fullInfo1.getTradePlatform());
             orderBookEntry.setPlatform2(fullInfo2.getTradePlatform());
-//            orderBookEntry.setNormaliseDelta(10000 /
-//                    fullInfo2.getSellDepth().getDepthInfoMap().firstEntry().getValue().getNormalizePrice() *
-//                    fullInfo1.getSellDepth().getDepthInfoMap().firstEntry().getValue().getNormalizePrice() - 10000);
             orderBookEntry.setNormaliseDelta(10000 /
                     fullSellInfo_2.getNormalizePrice() *
                     fullSellInfo_1.getNormalizePrice() - 10000);
         } else {
             orderBookEntry.setPlatform1(fullInfo2.getTradePlatform());
             orderBookEntry.setPlatform2(fullInfo1.getTradePlatform());
-//            orderBookEntry.setNormaliseDelta(10000 /
-//                    fullInfo1.getSellDepth().getDepthInfoMap().firstEntry().getValue().getNormalizePrice() *
-//                    fullInfo2.getSellDepth().getDepthInfoMap().firstEntry().getValue().getNormalizePrice() - 10000);
             orderBookEntry.setNormaliseDelta(10000 /
                     fullSellInfo_1.getNormalizePrice() *
                     fullSellInfo_2.getNormalizePrice() - 10000);

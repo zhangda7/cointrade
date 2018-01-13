@@ -6,7 +6,9 @@ public class ExchangeContext {
 
     public static Double totalProfit = 0.0;
 
-    public static CoinType[] toCheckedCoin = new CoinType[] {CoinType.BTC, CoinType.ETH, CoinType.LTC, CoinType.QTUM, CoinType.EOS, CoinType.BTG};
+    public static CoinType[] toCheckedCoin = new CoinType[] {CoinType.QTUM};
+
+//    public static CoinType[] toCheckedCoin = new CoinType[] {CoinType.BTC, CoinType.ETH, CoinType.LTC, CoinType.QTUM, CoinType.EOS, CoinType.BTG};
 
     public static synchronized void addProfit(Double profit) {
         totalProfit += profit;

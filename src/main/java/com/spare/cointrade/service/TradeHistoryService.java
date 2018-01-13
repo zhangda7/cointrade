@@ -2,9 +2,11 @@ package com.spare.cointrade.service;
 
 import com.spare.cointrade.ExchangeContext;
 import com.spare.cointrade.model.*;
+import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
 import java.sql.*;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -19,10 +21,17 @@ public class TradeHistoryService {
 
     private Connection connection;
 
+    private static final String DB_FILE = "/home/admin/data/coin.db";
+
     private TradeHistoryService() {
         try {
+            File dbFile = new File(DB_FILE);
+            if(! dbFile.exists()) {
+                FileUtils.forceMkdir(dbFile.getParentFile());
+                createTradeTable();
+            }
             Class.forName("org.sqlite.JDBC");
-            this.connection = DriverManager.getConnection("jdbc:sqlite:coin.db");
+            this.connection = DriverManager.getConnection("jdbc:sqlite:" + DB_FILE);
         } catch (Exception e) {
             logger.error("ERROR ", e);
             System.exit(1);
@@ -118,6 +127,43 @@ public class TradeHistoryService {
         rs.close();
         preparedStatement.close();
         return tradeHistoryList;
+    }
+
+    private void createTradeTable() {
+        Connection c = null;
+        Statement stmt = null;
+        try {
+            Class.forName("org.sqlite.JDBC");
+            c = DriverManager.getConnection("jdbc:sqlite:" + DB_FILE);
+            System.out.println("Opened database successfully");
+            stmt = c.createStatement();
+            String sql = "CREATE TABLE trade_history " +
+                    "(ID INTEGER PRIMARY KEY NOT NULL," +
+                    " pairId TEXT, " +
+                    " direction TEXT, " +
+                    " platform TEXT, " +
+                    " action TEXT, " +
+                    " coin_type TEXT, " +
+                    " target_coin_type TEXT," +
+                    "price REAL, " +
+                    "amount REAL, " +
+                    "result TEXT, " +
+                    "profit REAL, " +
+                    "account_name TEXT, " +
+                    "pre_account_source_amount REAL, " +
+                    "after_account_source_amount REAL, " +
+                    "pre_account_target_amount REAL, " +
+                    "after_account_target_amount REAL, " +
+                    "comment REAL, " +
+                    "gmt_created TEXT, gmt_modified TEXT)";
+            stmt.executeUpdate(sql);
+            stmt.close();
+            c.close();
+        } catch ( Exception e ) {
+            System.err.println( e.getClass().getName() + ": " + e.getMessage() );
+            System.exit(0);
+        }
+        logger.info("Table created successfully");
     }
 
 }

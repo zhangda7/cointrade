@@ -16,8 +16,6 @@
             <fileNamePattern>/home/admin/logs/app/cointrade.log.%d{yyyy-MM-dd}</fileNamePattern>
             <!-- 如果按天来回滚，则最大保存时间为maxHistory天，maxHistory天之前的都将被清理掉 -->
             <maxHistory>10</maxHistory>
-
-
         </rollingPolicy>
         <layout class="ch.qos.logback.classic.PatternLayout">
             <Pattern>%d{HH:mm:ss.SSS} %-5level [%thread] %logger{36}:%line - %msg%n</Pattern>
@@ -41,16 +39,24 @@
             <fileNamePattern>/home/admin/logs/app/coinmonitor.log.%d{yyyy-MM-dd}</fileNamePattern>
             <!-- 如果按天来回滚，则最大保存时间为maxHistory天，maxHistory天之前的都将被清理掉 -->
             <maxHistory>10</maxHistory>
-
-
         </rollingPolicy>
         <layout class="ch.qos.logback.classic.PatternLayout">
             <Pattern>%d{HH:mm:ss.SSS} %-5level [%thread] %logger{36}:%line - %msg%n</Pattern>
         </layout>
     </appender>
 
-    <logger name="com.spare.cointrade.service.MonitorService">
-        <appender-ref ref="MONITOR" /><!--STDOUT绑定到chapters.configuration上，这个logger的祖先是root-->
+    <!--  异步输出，异步的log片段必须在同步段后面，否则不起作用  -->
+    <appender name="ASYNC_MONITOR" class="ch.qos.logback.classic.AsyncAppender">
+        <!-- 不丢失日志.默认的,如果队列的80%已满,则会丢弃TRACT、DEBUG、INFO级别的日志 -->
+        <discardingThreshold>0</discardingThreshold>
+        <!-- 更改默认的队列的深度,该值会影响性能.默认值为256 -->
+        <queueSize>256</queueSize>
+        <!-- 添加附加的appender,最多只能添加一个 -->
+        <appender-ref ref="MONITOR"/>
+    </appender>
+
+    <logger name="com.spare.cointrade.log.TradeChanceLog" additivity="false">
+        <appender-ref ref="MONITOR" />
     </logger>
 
     <root level="INFO">

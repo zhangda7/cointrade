@@ -50,8 +50,8 @@ public class TradeStateSyncer extends AbstractActor {
     public Receive createReceive() {
         return receiveBuilder().match(TradePair.class, (tradePair -> {
             try {
-                logger.info("Receive trade pair {}", tradePair.getPairId());
                 reentrantLock.lock();
+                logger.info("Receive trade pair {}", tradePair.getPairId());
                 toCheckedPair.put(tradePair.getPairId(), tradePair);
                 scheduledExecutorService.schedule(new MockUpdateTrade(), 5, TimeUnit.SECONDS);
                 reentrantLock.unlock();
@@ -73,11 +73,11 @@ public class TradeStateSyncer extends AbstractActor {
                     logger.info("Update pair {} to success", entry.getKey());
                     TradeHistoryService.INSTANCE.updatePairResult(entry.getKey(), TradeResult.SUCCESS.name());
                     listingInfoMonitor.tell(entry.getValue(), ActorRef.noSender());
-                    toCheckedPair.clear();
                 } catch (Exception e) {
                     logger.error("ERROR ", e);
                 }
             }
+            toCheckedPair.clear();
             reentrantLock.unlock();
 
         }

@@ -5,6 +5,7 @@ import akka.actor.ActorSelection;
 import com.alibaba.fastjson.JSON;
 import com.spare.cointrade.ExchangeContext;
 import com.spare.cointrade.actor.monitor.ListingInfoMonitor;
+import com.spare.cointrade.log.TradeChanceLog;
 import com.spare.cointrade.model.*;
 import com.spare.cointrade.service.TradeHistoryService;
 import com.spare.cointrade.trade.AccountManager;
@@ -21,7 +22,9 @@ public class TradeJudgeV3 {
 
     private static Logger logger = LoggerFactory.getLogger(TradeJudgeV3.class);
 
-//    public static Props props () {
+    private static Logger tradeChanceLogger = LoggerFactory.getLogger(TradeChanceLog.class);
+
+    //    public static Props props () {
 //        return Props.create(TradeJudgeV3.class, () -> new TradeJudgeV3());
 //    }
     private ActorSelection tradeStateSyncer;
@@ -42,6 +45,10 @@ public class TradeJudgeV3 {
         TradeJudgeV3.canTrade = canTrade;
     }
 
+    private static final Double REVERSE_AVERAGE_NORMALIZE_PERCENT = 0.98;
+
+    private static final Double REVERSE_TOTAL_NORLAIZE_PERCENT = 0.3;
+
     public TradeJudgeV3() {
         this.tradeStateSyncer = AkkaContext.getSystem().actorSelection(
                 AkkaContext.getFullActorName(CoinTradeConstants.ACTOR_TRADE_STATE_SYNCER));
@@ -61,6 +68,11 @@ public class TradeJudgeV3 {
 //        for (SignalTrade signalTrade : tradePair.getSignalTradeList()) {
 //            mockDoTrade(signalTrade);
 //        }
+        if(! canTrade) {
+//            logger.debug("Current has unconfirmed trade, can not trade now");
+            return;
+        }
+        tradePair.setPairId(String.valueOf(pairIdGenerator.incrementAndGet()));
         double total_1 = tradePair.getTradePair_1().getAmount() * tradePair.getTradePair_1().getNormalizePrice();
         double total_2 = tradePair.getTradePair_2().getAmount() * tradePair.getTradePair_2().getNormalizePrice();
         double profit = 0.0;
@@ -116,17 +128,14 @@ public class TradeJudgeV3 {
 
     public void findTradeChance() {
         updateTradeChanceMap();
-//        if(! canTrade) {
-//            logger.info("Current has unconfirmed trade, can not trade now");
-//            return;
-//        }
+
         List<TradePair> tradePairList = findNormalTradeChance();
         if(tradePairList == null) {
             logger.warn("Not found trade pair for normal direction");
 //            return;
         }
         for(TradePair tradePair : tradePairList) {
-            logger.info("Find tradePair {}", JSON.toJSONString(tradePair));
+            tradeChanceLogger.info("Find tradePair {}", JSON.toJSONString(tradePair));
             doTrade(tradePair);
         }
 
@@ -136,7 +145,7 @@ public class TradeJudgeV3 {
             return;
         }
         for(TradePair tradePair : reverseTradePairList) {
-            logger.info("Find reverse tradePair {}", JSON.toJSONString(tradePair));
+            tradeChanceLogger.info("Find reverse tradePair {}", JSON.toJSONString(tradePair));
             doTrade(tradePair);
         }
 
@@ -174,7 +183,7 @@ public class TradeJudgeV3 {
             if(maxDeltaPair == null) {
                 continue;
             }
-            maxDeltaPair.setPairId(String.valueOf(pairIdGenerator.incrementAndGet()));
+//            maxDeltaPair.setPairId(String.valueOf(pairIdGenerator.incrementAndGet()));
             maxDeltaPair.setDirection("forward");
             //注意，这里使用绝对值了
             normalizeProfit.setValue(Math.abs(orderBookEntry.getNormaliseDelta()));
@@ -199,17 +208,17 @@ public class TradeJudgeV3 {
             }
         });
         for(OrderBookEntry orderBookEntry : entryList) {
-            if(Math.abs(orderBookEntry.getNormaliseDelta()) > normalizeProfit.getValue() * 0.98) {
+            if(Math.abs(orderBookEntry.getNormaliseDelta()) > normalizeProfit.getValue() * REVERSE_AVERAGE_NORMALIZE_PERCENT) {
                 continue;
             }
 
-            logger.info("Can do reverse trade, cur delta {}, EWMA delta{}",
+            tradeChanceLogger.info("Can do reverse trade, cur delta {}, EWMA delta{}",
                     orderBookEntry.getNormaliseDelta(), normalizeProfit.getValue(), JSON.toJSONString(orderBookEntry));
             TradePair maxDeltaPair = createReverseTradePair(orderBookEntry);
             if(maxDeltaPair == null) {
                 continue;
             }
-            maxDeltaPair.setPairId(String.valueOf(pairIdGenerator.incrementAndGet()));
+//            maxDeltaPair.setPairId(String.valueOf(pairIdGenerator.incrementAndGet()));
             maxDeltaPair.setDirection("reverse");
             normalizeProfit.setValue(Math.abs(orderBookEntry.getNormaliseDelta()) * -1);
             tradePairList.add(maxDeltaPair);
@@ -275,11 +284,21 @@ public class TradeJudgeV3 {
             coinMinTradeAmount = MIN_TRADE_AMOUNT;
         }
 
+        /**
+         * 把总收益的百分比也加上，反转时不能超出这个阈值
+         */
+        double maxReverseMoney = ExchangeContext.totalProfit * REVERSE_TOTAL_NORLAIZE_PERCENT;
+
+        //暂时使用买方的归一化价格来计算最小交易数量
+        double minAmount2 = maxReverseMoney / buySide.getBuyDepth().getDepthInfoMap().firstEntry().getValue().getNormalizePrice();
+        minAmount = Math.min(minAmount, minAmount2);
+
         if(minAmount < coinMinTradeAmount) {
             return null;
         }
+
         tradePair.setTradePair_1(makeOneTrade(sellSide.getTradePlatform(),
-                orderBookEntry.getCoinType(), CoinType.MONRY,
+                orderBookEntry.getCoinType(), CoinType.MONRY, // 应该为buySide.targetCoinType
                 TradeAction.SELL,
                 sellSide.getBuyDepth().getDepthInfoMap().firstEntry().getValue().getOriPrice(), minAmount,
                 sellSide.getBuyDepth().getDepthInfoMap().firstEntry().getValue().getNormalizePrice()));

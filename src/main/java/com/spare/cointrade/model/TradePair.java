@@ -16,7 +16,7 @@ public class TradePair {
     /**
      * 交易的方向，即正向(盈利)，或者反向（亏损）
      */
-    private String direction;
+    private TradeDirection tradeDirection;
 
     private SignalTrade tradePair_1;
 

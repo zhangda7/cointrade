@@ -11,6 +11,7 @@ import com.spare.cointrade.service.TradeHistoryService;
 import com.spare.cointrade.trade.AccountManager;
 import com.spare.cointrade.util.AkkaContext;
 import com.spare.cointrade.util.CoinTradeConstants;
+import com.spare.cointrade.util.ListingDepthUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,6 +49,11 @@ public class TradeJudgeV3 {
     private static final Double REVERSE_AVERAGE_NORMALIZE_PERCENT = 0.98;
 
     private static final Double REVERSE_TOTAL_NORLAIZE_PERCENT = 0.3;
+
+    /**
+     * 总是监控深度信息的第二级，即买2，卖2
+     */
+    private static final int MONITOR_DEPTH_LEVEL = 1;
 
     public TradeJudgeV3() {
         this.tradeStateSyncer = AkkaContext.getSystem().actorSelection(
@@ -91,7 +97,7 @@ public class TradeJudgeV3 {
     private void mockDoTrade(TradePair tradePair, SignalTrade signalTrade, double profit) {
         TradeHistory tradeHistory = new TradeHistory();
         tradeHistory.setPairId(tradePair.getPairId());
-        tradeHistory.setDirection(tradePair.getDirection());
+        tradeHistory.setDirection(tradePair.getTradeDirection().name());
         tradeHistory.setTradePlatform(signalTrade.getTradePlatform());
         tradeHistory.setTradeAction(signalTrade.getTradeAction());
         tradeHistory.setCoinType(signalTrade.getSourceCoin());
@@ -149,8 +155,6 @@ public class TradeJudgeV3 {
             doTrade(tradePair);
         }
 
-
-
     }
 
     public String toiListingInfoKey(TradePlatform tradePlatform, CoinType coinType) {
@@ -183,8 +187,6 @@ public class TradeJudgeV3 {
             if(maxDeltaPair == null) {
                 continue;
             }
-//            maxDeltaPair.setPairId(String.valueOf(pairIdGenerator.incrementAndGet()));
-            maxDeltaPair.setDirection("forward");
             //注意，这里使用绝对值了
             normalizeProfit.setValue(Math.abs(orderBookEntry.getNormaliseDelta()));
             tradePairList.add(maxDeltaPair);
@@ -218,8 +220,6 @@ public class TradeJudgeV3 {
             if(maxDeltaPair == null) {
                 continue;
             }
-//            maxDeltaPair.setPairId(String.valueOf(pairIdGenerator.incrementAndGet()));
-            maxDeltaPair.setDirection("reverse");
             normalizeProfit.setValue(Math.abs(orderBookEntry.getNormaliseDelta()) * -1);
             tradePairList.add(maxDeltaPair);
         }
@@ -241,9 +241,9 @@ public class TradeJudgeV3 {
         ListingFullInfo fullInfo1 = ListingInfoMonitor.listingFullInfoMap.get(toiListingInfoKey(maxEntry.getPlatform1(), maxEntry.getCoinType()));
         ListingFullInfo fullInfo2 = ListingInfoMonitor.listingFullInfoMap.get(toiListingInfoKey(maxEntry.getPlatform2(), maxEntry.getCoinType()));
         if(maxEntry.getDelta() > 0) {
-            return judgeAndMakePair(fullInfo1, fullInfo2, maxEntry);
+            return judgeAndMakePair(fullInfo1, fullInfo2, maxEntry, TradeDirection.REVERSE);
         } else {
-            return judgeAndMakePair(fullInfo2, fullInfo1, maxEntry);
+            return judgeAndMakePair(fullInfo2, fullInfo1, maxEntry, TradeDirection.REVERSE);
         }
     }
 
@@ -262,20 +262,25 @@ public class TradeJudgeV3 {
         ListingFullInfo fullInfo1 = ListingInfoMonitor.listingFullInfoMap.get(toiListingInfoKey(maxEntry.getPlatform1(), maxEntry.getCoinType()));
         ListingFullInfo fullInfo2 = ListingInfoMonitor.listingFullInfoMap.get(toiListingInfoKey(maxEntry.getPlatform2(), maxEntry.getCoinType()));
         if(maxEntry.getDelta() > 0) {
-            return judgeAndMakePair(fullInfo2, fullInfo1, maxEntry);
+            return judgeAndMakePair(fullInfo2, fullInfo1, maxEntry, TradeDirection.FORWARD);
         } else {
-            return judgeAndMakePair(fullInfo1, fullInfo2, maxEntry);
+            return judgeAndMakePair(fullInfo1, fullInfo2, maxEntry, TradeDirection.FORWARD);
         }
 
     }
 
-    private TradePair judgeAndMakePair(ListingFullInfo buySide, ListingFullInfo sellSide, OrderBookEntry orderBookEntry) {
+    private TradePair judgeAndMakePair(ListingFullInfo buySide, ListingFullInfo sellSide,
+                                       OrderBookEntry orderBookEntry, TradeDirection tradeDirection) {
         TradePair tradePair = new TradePair();
-        double maxSellAmount = Math.min(sellSide.getBuyDepth().getDepthInfoMap().firstEntry().getValue().getAmount(),
+        tradePair.setTradeDirection(tradeDirection);
+//        double maxSellAmount = Math.min(sellSide.getBuyDepth().getDepthInfoMap().firstEntry().getValue().getAmount(),
+//                AccountManager.INSTANCE.getFreeAmount(sellSide.getTradePlatform(), orderBookEntry.getCoinType()));
+        double maxSellAmount = Math.min(ListingDepthUtil.getLevelDepthInfo(sellSide.getBuyDepth(), MONITOR_DEPTH_LEVEL).getAmount(),
                 AccountManager.INSTANCE.getFreeAmount(sellSide.getTradePlatform(), orderBookEntry.getCoinType()));
-
+//        double maxBuyAmount = AccountManager.INSTANCE.getNormalizeCNY(buySide.getTradePlatform()) /
+//                buySide.getSellDepth().getDepthInfoMap().firstEntry().getValue().getNormalizePrice();
         double maxBuyAmount = AccountManager.INSTANCE.getNormalizeCNY(buySide.getTradePlatform()) /
-                buySide.getSellDepth().getDepthInfoMap().firstEntry().getValue().getNormalizePrice();
+                ListingDepthUtil.getLevelDepthInfo(buySide.getSellDepth(), MONITOR_DEPTH_LEVEL).getNormalizePrice();
 
         double minAmount = Math.min(maxSellAmount, maxBuyAmount);
 
@@ -284,29 +289,47 @@ public class TradeJudgeV3 {
             coinMinTradeAmount = MIN_TRADE_AMOUNT;
         }
 
-        /**
-         * 把总收益的百分比也加上，反转时不能超出这个阈值
-         */
-        double maxReverseMoney = ExchangeContext.totalProfit * REVERSE_TOTAL_NORLAIZE_PERCENT;
+        if(tradeDirection.equals(TradeDirection.REVERSE)) {
+            /**
+             * 把总收益的百分比也加上，反转时不能超出这个阈值
+             */
+            double maxReverseMoney = ExchangeContext.totalProfit * REVERSE_TOTAL_NORLAIZE_PERCENT;
 
-        //暂时使用买方的归一化价格来计算最小交易数量
-        double minAmount2 = maxReverseMoney / buySide.getBuyDepth().getDepthInfoMap().firstEntry().getValue().getNormalizePrice();
-        minAmount = Math.min(minAmount, minAmount2);
+            //暂时使用买方的归一化价格来计算最小交易数量
+//        double minAmount2 = maxReverseMoney / buySide.getBuyDepth().getDepthInfoMap().firstEntry().getValue().getNormalizePrice();
+            double minAmount2 = maxReverseMoney / ListingDepthUtil.getLevelDepthInfo(buySide.getBuyDepth(), MONITOR_DEPTH_LEVEL).getNormalizePrice();
+
+            minAmount = Math.min(minAmount, minAmount2);
+        }
+
 
         if(minAmount < coinMinTradeAmount) {
             return null;
         }
 
+//        tradePair.setTradePair_1(makeOneTrade(sellSide.getTradePlatform(),
+//                orderBookEntry.getCoinType(), CoinType.MONRY, // 应该为buySide.targetCoinType
+//                TradeAction.SELL,
+//                sellSide.getBuyDepth().getDepthInfoMap().firstEntry().getValue().getOriPrice(), minAmount,
+//                sellSide.getBuyDepth().getDepthInfoMap().firstEntry().getValue().getNormalizePrice()));
+        ListingDepth.DepthInfo sellInfo = ListingDepthUtil.getLevelDepthInfo(sellSide.getBuyDepth(), MONITOR_DEPTH_LEVEL);
         tradePair.setTradePair_1(makeOneTrade(sellSide.getTradePlatform(),
                 orderBookEntry.getCoinType(), CoinType.MONRY, // 应该为buySide.targetCoinType
                 TradeAction.SELL,
-                sellSide.getBuyDepth().getDepthInfoMap().firstEntry().getValue().getOriPrice(), minAmount,
-                sellSide.getBuyDepth().getDepthInfoMap().firstEntry().getValue().getNormalizePrice()));
+                sellInfo.getOriPrice(), minAmount,
+                sellInfo.getNormalizePrice()));
+//        tradePair.setTradePair_2(makeOneTrade(buySide.getTradePlatform(),
+//                orderBookEntry.getCoinType(), CoinType.MONRY,
+//                TradeAction.BUY,
+//                buySide.getBuyDepth().getDepthInfoMap().firstEntry().getValue().getOriPrice(), minAmount,
+//                buySide.getBuyDepth().getDepthInfoMap().firstEntry().getValue().getNormalizePrice()));
+        //TODO FIXME 这里错了吧，应该是sell depth
+        ListingDepth.DepthInfo buyInfo = ListingDepthUtil.getLevelDepthInfo(buySide.getBuyDepth(), MONITOR_DEPTH_LEVEL);
         tradePair.setTradePair_2(makeOneTrade(buySide.getTradePlatform(),
                 orderBookEntry.getCoinType(), CoinType.MONRY,
                 TradeAction.BUY,
-                buySide.getBuyDepth().getDepthInfoMap().firstEntry().getValue().getOriPrice(), minAmount,
-                buySide.getBuyDepth().getDepthInfoMap().firstEntry().getValue().getNormalizePrice()));
+                buyInfo.getOriPrice(), minAmount,
+                buyInfo.getNormalizePrice()));
         return tradePair;
     }
 
@@ -402,11 +425,16 @@ public class TradeJudgeV3 {
      * @return
      */
     private OrderBookEntry checkTradeChanceBy2Platform(CoinType coinType, ListingFullInfo fullInfo1, ListingFullInfo fullInfo2) {
-        double delta = fullInfo1.getSellDepth().getDepthInfoMap().firstEntry().getValue().getNormalizePrice() -
-                fullInfo2.getSellDepth().getDepthInfoMap().firstEntry().getValue().getNormalizePrice();
+        ListingDepth.DepthInfo fullSellInfo_1 = ListingDepthUtil.getLevelDepthInfo(fullInfo1.getSellDepth(), MONITOR_DEPTH_LEVEL);
+        ListingDepth.DepthInfo fullSellInfo_2 = ListingDepthUtil.getLevelDepthInfo(fullInfo2.getSellDepth(), MONITOR_DEPTH_LEVEL);
 
-        double amount = Math.min(fullInfo1.getSellDepth().getDepthInfoMap().firstEntry().getValue().getAmount(),
-                fullInfo2.getSellDepth().getDepthInfoMap().firstEntry().getValue().getAmount());
+        double delta = fullSellInfo_1.getNormalizePrice() - fullSellInfo_2.getNormalizePrice();
+        double amount = Math.min(fullSellInfo_1.getAmount(), fullSellInfo_2.getAmount());
+//        double delta = fullInfo1.getSellDepth().getDepthInfoMap().firstEntry().getValue().getNormalizePrice() -
+//                fullInfo2.getSellDepth().getDepthInfoMap().firstEntry().getValue().getNormalizePrice();
+//
+//        double amount = Math.min(fullInfo1.getSellDepth().getDepthInfoMap().firstEntry().getValue().getAmount(),
+//                fullInfo2.getSellDepth().getDepthInfoMap().firstEntry().getValue().getAmount());
 
         OrderBookEntry orderBookEntry = new OrderBookEntry();
         orderBookEntry.setCoinType(coinType);
@@ -415,15 +443,21 @@ public class TradeJudgeV3 {
         if(delta >= 0) {
             orderBookEntry.setPlatform1(fullInfo1.getTradePlatform());
             orderBookEntry.setPlatform2(fullInfo2.getTradePlatform());
+//            orderBookEntry.setNormaliseDelta(10000 /
+//                    fullInfo2.getSellDepth().getDepthInfoMap().firstEntry().getValue().getNormalizePrice() *
+//                    fullInfo1.getSellDepth().getDepthInfoMap().firstEntry().getValue().getNormalizePrice() - 10000);
             orderBookEntry.setNormaliseDelta(10000 /
-                    fullInfo2.getSellDepth().getDepthInfoMap().firstEntry().getValue().getNormalizePrice() *
-                    fullInfo1.getSellDepth().getDepthInfoMap().firstEntry().getValue().getNormalizePrice() - 10000);
+                    fullSellInfo_2.getNormalizePrice() *
+                    fullSellInfo_1.getNormalizePrice() - 10000);
         } else {
             orderBookEntry.setPlatform1(fullInfo2.getTradePlatform());
             orderBookEntry.setPlatform2(fullInfo1.getTradePlatform());
+//            orderBookEntry.setNormaliseDelta(10000 /
+//                    fullInfo1.getSellDepth().getDepthInfoMap().firstEntry().getValue().getNormalizePrice() *
+//                    fullInfo2.getSellDepth().getDepthInfoMap().firstEntry().getValue().getNormalizePrice() - 10000);
             orderBookEntry.setNormaliseDelta(10000 /
-                    fullInfo1.getSellDepth().getDepthInfoMap().firstEntry().getValue().getNormalizePrice() *
-                    fullInfo2.getSellDepth().getDepthInfoMap().firstEntry().getValue().getNormalizePrice() - 10000);
+                    fullSellInfo_1.getNormalizePrice() *
+                    fullSellInfo_2.getNormalizePrice() - 10000);
         }
 
         return orderBookEntry;

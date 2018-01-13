@@ -10,7 +10,7 @@ public class ListingDepthUtil {
     /**
      * 获取depthinfo第几级的信息
      * @param listingDepth
-     * @param level 第几层级的消息，最大到5
+     * @param level 第几层级的消息，从0开始，最大到5
      * @return
      */
     public static ListingDepth.DepthInfo getLevelDepthInfo(ListingDepth listingDepth, int level) {

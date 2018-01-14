@@ -11,6 +11,7 @@ import com.spare.cointrade.actor.trade.TradeJudgeV2;
 import com.spare.cointrade.actor.trade.TradeJudgeV3;
 import com.spare.cointrade.model.*;
 import com.spare.cointrade.service.TradeHistoryService;
+import com.spare.cointrade.util.ConfigContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.StringUtils;
@@ -75,8 +76,8 @@ public class StatusController {
         RestfulPage restfulPage = new RestfulPage();
         restfulPage.setCode(CODE_SUCCESS);
         JSONObject jsonObject = new JSONObject();
-        jsonObject.put("totalNomalizeProfit", String.valueOf(ExchangeContext.totalProfit));
-        jsonObject.put("normalizeProfit", String.valueOf(TradeJudgeV3.normalizeProfit.getValue()));
+        jsonObject.put("totalNomalizeProfit", String.valueOf(ConfigContext.getINSTANCE().getTotalProfit()));
+        jsonObject.put("normalizeProfit", String.valueOf(ConfigContext.getINSTANCE().getNormalizeProfit()));
         restfulPage.setData(JSON.toJSONString(jsonObject));
         return JSON.toJSONString(restfulPage);
     }

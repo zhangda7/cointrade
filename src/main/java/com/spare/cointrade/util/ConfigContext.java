@@ -2,6 +2,7 @@ package com.spare.cointrade.util;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
+import com.spare.cointrade.model.CoinType;
 import com.spare.cointrade.model.Ewma;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -10,6 +11,8 @@ import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
 import java.io.*;
+import java.util.HashMap;
+import java.util.Map;
 
 @Component
 public class ConfigContext {
@@ -26,10 +29,25 @@ public class ConfigContext {
 
     private static ConfigContext INSTANCE;
 
+    private File configFile;
+
+    private Map<CoinType, Double> maxCoinAmountMap = new HashMap<>();
+
+    private void initMaxCoinMap() {
+        maxCoinAmountMap.put(CoinType.BTC, 0.001);
+        maxCoinAmountMap.put(CoinType.ETH, 0.01);
+        maxCoinAmountMap.put(CoinType.LTC, 0.1);
+        maxCoinAmountMap.put(CoinType.QTUM, 0.5);
+        maxCoinAmountMap.put(CoinType.EOS, 1.0);
+        maxCoinAmountMap.put(CoinType.BTC, 0.1);
+
+    }
+
     @PostConstruct
     private void init() {
         INSTANCE = this;
-        File configFile = new File("/home/admin/conf/coin-config");
+        this.configFile = new File("/home/admin/conf/coin-config");
+        this.initMaxCoinMap();
         if(! configFile.exists()) {
             printConfig();
             return;
@@ -51,10 +69,17 @@ public class ConfigContext {
 
     }
 
+    public Double getMaxTradeAmount(CoinType coinType) {
+        if(maxCoinAmountMap.containsKey(coinType)) {
+            return maxCoinAmountMap.get(coinType);
+        }
+        return 0.0;
+    }
+
     private void updateFile(File file, String content) {
         try {
             file.createNewFile(); // 创建新文件
-            BufferedWriter out = new BufferedWriter(new FileWriter(file));
+            BufferedWriter out = new BufferedWriter(new FileWriter(file, false));
             out.write(content); // \r\n即为换行
             out.flush(); // 把缓存区内容压入文件
             out.close(); // 最后记得关闭文件

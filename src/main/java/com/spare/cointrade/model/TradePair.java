@@ -22,6 +22,10 @@ public class TradePair {
 
     private SignalTrade tradePair_2;
 
+    /**
+     * 对于binance的平台，如果交易的对标币种是BTC，需要一次额外的交易，去补平BTC的数量
+     */
+    private SignalTrade tradePair_3;
 //    private List<SignalTrade> signalTradeList;
 
 //    public TradePair() {

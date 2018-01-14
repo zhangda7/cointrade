@@ -7,6 +7,7 @@ import com.spare.cointrade.actor.monitor.TradeStateSyncer;
 import com.spare.cointrade.actor.trade.HuobiTrader;
 import com.spare.cointrade.actor.trade.OkCoinTrader;
 import com.spare.cointrade.actor.trade.TradeJudgeV2;
+import com.spare.cointrade.actor.trade.TradeJudgeV3;
 import com.spare.cointrade.model.Account;
 import com.spare.cointrade.model.CoinType;
 import com.spare.cointrade.model.TradeType;
@@ -57,6 +58,7 @@ public class CoinApplicationMain {
     public static void main(String[] args) {
 //        initActor();
         mockAccount();
+//        TradeJudgeV3.setCanTrade(false);
         SpringApplication.run(CoinApplicationMain.class, args);
     }
 

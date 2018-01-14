@@ -37,13 +37,11 @@ public class BinanceSimpleSyncer implements Runnable {
 
     private BinanceApiRestClient client;
 
-    private Map<CoinType, Double> coinUsdtMap = new HashMap<>();
-
     public BinanceSimpleSyncer() {
         BinanceApiClientFactory factory = BinanceApiClientFactory.newInstance();
         client = factory.newRestClient();
         //init usdt
-        coinUsdtMap.put(CoinType.USDT, 1.0);
+        ExchangeContext.binanceCoinUsdtMap.put(CoinType.USDT, 1.0);
     }
 
     @PostConstruct
@@ -86,7 +84,8 @@ public class BinanceSimpleSyncer implements Runnable {
             OrderBook orderBook = client.getOrderBook(sourceCoin.name() + targetCoin.name(), count);
             if(targetCoin.equals(CoinType.USDT)) {
                 if(orderBook.getAsks().size() > 0) {
-                    coinUsdtMap.put(sourceCoin, Double.parseDouble(orderBook.getAsks().get(0).getPrice()));
+                    //标识btc -> usdt的价格
+                    ExchangeContext.binanceCoinUsdtMap.put(sourceCoin, Double.parseDouble(orderBook.getAsks().get(0).getPrice()));
                 }
             }
             ListingFullInfo listingFullInfo = convert(orderBook, sourceCoin, targetCoin);
@@ -122,8 +121,10 @@ public class BinanceSimpleSyncer implements Runnable {
             ListingDepth.DepthInfo depthInfo = listingDepth.new DepthInfo();
             depthInfo.setOriPrice(Double.parseDouble(listingPair.getPrice()));
 
-            if(coinUsdtMap.containsKey(targetCoin)) {
-                depthInfo.setNormalizePrice(depthInfo.getOriPrice() * coinUsdtMap.get(targetCoin) * ExchangeContext.USD2CNY());
+            if(ExchangeContext.binanceCoinUsdtMap.containsKey(targetCoin)) {
+                depthInfo.setNormalizePrice(ExchangeContext.normalizeToCNY(
+                        CoinType.USDT, ExchangeContext.binanceCoinUsdtMap.get(targetCoin) * depthInfo.getOriPrice()));
+//                depthInfo.setNormalizePrice(depthInfo.getOriPrice() * coinUsdtMap.get(targetCoin) * ExchangeContext.USD2CNY());
             } else {
                 depthInfo.setNormalizePrice(0.0);
             }

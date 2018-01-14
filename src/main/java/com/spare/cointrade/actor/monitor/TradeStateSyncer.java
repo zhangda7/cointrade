@@ -7,6 +7,7 @@ import akka.actor.ActorSelection;
 import akka.actor.Props;
 import com.spare.cointrade.model.*;
 import com.spare.cointrade.service.TradeHistoryService;
+import com.spare.cointrade.trade.AccountManager;
 import com.spare.cointrade.util.AkkaContext;
 import com.spare.cointrade.util.CoinTradeConstants;
 import io.netty.util.concurrent.DefaultThreadFactory;
@@ -79,6 +80,15 @@ public class TradeStateSyncer extends AbstractActor {
             }
             toCheckedPair.clear();
             reentrantLock.unlock();
+
+        }
+
+        private void balanceBinanceBTC(TradePair tradePair) {
+            if(tradePair.getTradePair_1().getTradePlatform().equals(TradePlatform.BINANCE)) {
+                SignalTrade signalTrade = tradePair.getTradePair_1();
+//                signalTrade.ge
+            }
+            Double preAmount = AccountManager.INSTANCE.getFreeAmount(TradePlatform.BINANCE, CoinType.BTC);
 
         }
     }

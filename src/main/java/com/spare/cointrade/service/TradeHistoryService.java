@@ -40,14 +40,14 @@ public class TradeHistoryService {
     }
 
     public int insert(TradeHistory tradeHistory) {
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:SS");
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         String dateStr = sdf.format(new Date());
         try {
             String sql = "INSERT INTO trade_history (platform, action, coin_type, target_coin_type, price, amount," +
                     "result, account_name, pre_account_source_amount, after_account_source_amount," +
                     "pre_account_target_amount, after_account_target_amount, comment, gmt_created, gmt_modified, " +
-                    "pairId, direction, profit)\n" +
-                    "VALUES ( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                    "pairId, direction, profit, normalize_price)\n" +
+                    "VALUES ( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
             PreparedStatement preparedStatement = this.connection.prepareStatement(sql);
             preparedStatement.setString(1, tradeHistory.getTradePlatform().name());
             preparedStatement.setString(2, tradeHistory.getTradeAction().name());
@@ -67,7 +67,7 @@ public class TradeHistoryService {
             preparedStatement.setString(16, tradeHistory.getPairId());
             preparedStatement.setString(17, tradeHistory.getDirection());
             preparedStatement.setDouble(18, tradeHistory.getProfit());
-
+            preparedStatement.setDouble(19, tradeHistory.getNormalizePrice());
             int ret = preparedStatement.executeUpdate();
             return ret;
         } catch ( Exception e ) {
@@ -109,11 +109,7 @@ public class TradeHistoryService {
             tradeHistory.setCoinType(CoinType.valueOf(rs.getString("coin_type")));
             tradeHistory.setTargetCoinType(CoinType.valueOf(rs.getString("target_coin_type")));
             tradeHistory.setPrice(rs.getDouble("price"));
-            if(tradeHistory.getTradePlatform().equals(TradePlatform.BITHUMB)) {
-                tradeHistory.setNormalizePrice(tradeHistory.getPrice() * ExchangeContext.KRW2CNY());
-            } else if(tradeHistory.getTradePlatform().equals(TradePlatform.BINANCE)){
-                tradeHistory.setNormalizePrice(tradeHistory.getPrice() * ExchangeContext.USD2CNY());
-            }
+            tradeHistory.setNormalizePrice(rs.getDouble("normalize_price"));
             tradeHistory.setAmount(rs.getDouble("amount"));
             tradeHistory.setResult(TradeResult.valueOf(rs.getString("result")));
             tradeHistory.setAccountName(rs.getString("account_name"));
@@ -146,6 +142,7 @@ public class TradeHistoryService {
                     " coin_type TEXT, " +
                     " target_coin_type TEXT," +
                     "price REAL, " +
+                    "normalize_price REAL, " +
                     "amount REAL, " +
                     "result TEXT, " +
                     "profit REAL, " +

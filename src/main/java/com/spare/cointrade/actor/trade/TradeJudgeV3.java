@@ -11,6 +11,7 @@ import com.spare.cointrade.service.TradeHistoryService;
 import com.spare.cointrade.trade.AccountManager;
 import com.spare.cointrade.util.AkkaContext;
 import com.spare.cointrade.util.CoinTradeConstants;
+import com.spare.cointrade.util.ConfigContext;
 import com.spare.cointrade.util.ListingDepthUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -64,6 +65,7 @@ public class TradeJudgeV3 {
 
     private void doTrade(TradePair tradePair) {
         if(! canTrade) {
+            tradeChanceLogger.info("Status of canTrade is {}, just return", canTrade);
             return;
         }
         tradePair.setPairId(String.valueOf(pairIdGenerator.incrementAndGet()));
@@ -75,7 +77,7 @@ public class TradeJudgeV3 {
         } else {
             profit = total_2 - total_1;
         }
-        ExchangeContext.addProfit(profit);
+        ConfigContext.getINSTANCE().addProfit(profit);
         mockDoTrade(tradePair, tradePair.getTradePair_1(), profit);
         mockDoTrade(tradePair, tradePair.getTradePair_2(), profit);
         canTrade = false;
@@ -97,10 +99,17 @@ public class TradeJudgeV3 {
         Account account = AccountManager.INSTANCE.getPlatformAccountMap().get(signalTrade.getTradePlatform());
         Balance sourceBalance = account.getBalanceMap().get(signalTrade.getSourceCoin());
         Balance targetBalance = null;
-        if(signalTrade.getTargetCoin().equals(CoinType.MONRY)) {
+        if(signalTrade.getTargetCoin().equals(CoinType.KRW) ||
+                signalTrade.getTargetCoin().equals(CoinType.CNY)) {
             targetBalance = account.getMoneyBalance();
+            tradeHistory.setNormalizePrice(ExchangeContext.normalizeToCNY(signalTrade.getTargetCoin(), signalTrade.getPrice()));
+        } else {
+            targetBalance = account.getBalanceMap().get(signalTrade.getTargetCoin());
+            tradeHistory.setNormalizePrice(
+                    ExchangeContext.normalizeToCNY(CoinType.USDT,
+                            signalTrade.getPrice() * ExchangeContext.currency2USDT(
+                                    signalTrade.getTradePlatform(), signalTrade.getTargetCoin())));
         }
-//        Balance targetBalance = account.getBalanceMap().get(signalTrade.getTargetCoin());
         tradeHistory.setPreAccountSourceAmount(sourceBalance.getFreeAmount());
         tradeHistory.setPreAccountTargetAmount(targetBalance.getFreeAmount());
         if(signalTrade.getTradeAction().equals(TradeAction.BUY)) {
@@ -115,7 +124,7 @@ public class TradeJudgeV3 {
         tradeHistory.setAfterAccountSourceAmount(sourceBalance.getFreeAmount());
         tradeHistory.setAfterAccountTargetAmount(targetBalance.getFreeAmount());
         tradeHistory.setAccountName(account.getAccountName());
-//        logger.info("Prepare insert tradeHistory {}", JSON.toJSONString(tradeHistory));
+        logger.info("Prepare insert tradeHistory {}", JSON.toJSONString(tradeHistory));
         TradeHistoryService.INSTANCE.insert(tradeHistory);
 
     }
@@ -250,6 +259,8 @@ public class TradeJudgeV3 {
         ListingFullInfo fullInfo1 = ListingInfoMonitor.listingFullInfoMap.get(toiListingInfoKey(maxEntry.getPlatform1(), maxEntry.getCoinType()));
         ListingFullInfo fullInfo2 = ListingInfoMonitor.listingFullInfoMap.get(toiListingInfoKey(maxEntry.getPlatform2(), maxEntry.getCoinType()));
         if(maxEntry.getDelta() > 0) {
+            //1 = 高价平台，应卖出
+            //2 = 低价平台，应买进
             return judgeAndMakePair(fullInfo2, fullInfo1, maxEntry, TradeDirection.FORWARD);
         } else {
             return judgeAndMakePair(fullInfo1, fullInfo2, maxEntry, TradeDirection.FORWARD);
@@ -257,14 +268,28 @@ public class TradeJudgeV3 {
 
     }
 
+    /**
+     *
+     * @param buySide 要买进（价格低）的平台，需查询sell 价
+     * @param sellSide 要卖出（价格高）的平台，需查询buy 价
+     * @param orderBookEntry
+     * @param tradeDirection
+     * @return
+     */
     private TradePair judgeAndMakePair(ListingFullInfo buySide, ListingFullInfo sellSide,
                                        OrderBookEntry orderBookEntry, TradeDirection tradeDirection) {
         TradePair tradePair = new TradePair();
         tradePair.setTradeDirection(tradeDirection);
         double maxSellAmount = Math.min(ListingDepthUtil.getLevelDepthInfo(sellSide.getBuyDepth(), MONITOR_DEPTH_LEVEL).getAmount(),
                 AccountManager.INSTANCE.getFreeAmount(sellSide.getTradePlatform(), orderBookEntry.getCoinType()));
-        double maxBuyAmount = AccountManager.INSTANCE.getNormalizeCNY(buySide.getTradePlatform()) /
-                ListingDepthUtil.getLevelDepthInfo(buySide.getSellDepth(), MONITOR_DEPTH_LEVEL).getNormalizePrice();
+
+        ListingDepth.DepthInfo sellDepth = ListingDepthUtil.getLevelDepthInfo(buySide.getSellDepth(), MONITOR_DEPTH_LEVEL);
+
+        double maxBuyAmount = AccountManager.INSTANCE.getFreeAmount(
+                buySide.getTradePlatform(), buySide.getTargetCoinType()) / sellDepth.getOriPrice();
+//        double maxDepthBuyAmount = sellDepth.getAmount() * sellDepth.getOriPrice();
+//        double maxBuyAmount = Math.min(ListingDepthUtil.getLevelDepthInfo(buySide.getSellDepth(), MONITOR_DEPTH_LEVEL).getAmount(),
+//                AccountManager.INSTANCE.getFreeAmount(buySide.getTradePlatform(), buySide.getTargetCoinType()));
 
         double minAmount = Math.min(maxSellAmount, maxBuyAmount);
 
@@ -277,7 +302,7 @@ public class TradeJudgeV3 {
             /**
              * 把总收益的百分比也加上，反转时不能超出这个阈值
              */
-            double maxReverseMoney = ExchangeContext.totalProfit * REVERSE_TOTAL_NORLAIZE_PERCENT;
+            double maxReverseMoney = ConfigContext.getINSTANCE().getTotalProfit() * REVERSE_TOTAL_NORLAIZE_PERCENT;
 
             //暂时使用买方的归一化价格来计算最小交易数量
 //        double minAmount2 = maxReverseMoney / buySide.getBuyDepth().getDepthInfoMap().firstEntry().getValue().getNormalizePrice();
@@ -286,24 +311,39 @@ public class TradeJudgeV3 {
             minAmount = Math.min(minAmount, minAmount2);
         }
 
+        minAmount = Math.min(minAmount, ConfigContext.getINSTANCE().getMaxTradeAmount(orderBookEntry.getCoinType()));
 
         if(minAmount < coinMinTradeAmount) {
             return null;
         }
+        SignalTrade binanceTrade = null;
 
         ListingDepth.DepthInfo sellInfo = ListingDepthUtil.getLevelDepthInfo(sellSide.getBuyDepth(), MONITOR_DEPTH_LEVEL);
         tradePair.setTradePair_1(makeOneTrade(sellSide.getTradePlatform(),
-                orderBookEntry.getCoinType(), CoinType.MONRY, // 应该为buySide.targetCoinType
+                orderBookEntry.getCoinType(), sellSide.getTargetCoinType(), // 应该为buySide.targetCoinType
                 TradeAction.SELL,
                 sellInfo.getOriPrice(), minAmount,
                 sellInfo.getNormalizePrice()));
-        //TODO FIXME 这里错了吧，应该是sell depth
-        ListingDepth.DepthInfo buyInfo = ListingDepthUtil.getLevelDepthInfo(buySide.getBuyDepth(), MONITOR_DEPTH_LEVEL);
+//        if(tradePair.getTradePair_1().getTradePlatform().equals(TradePlatform.BINANCE)) {
+//            binanceTrade = tradePair.getTradePair_1();
+//        }
+
+        ListingDepth.DepthInfo buyInfo = ListingDepthUtil.getLevelDepthInfo(buySide.getSellDepth(), MONITOR_DEPTH_LEVEL);
         tradePair.setTradePair_2(makeOneTrade(buySide.getTradePlatform(),
-                orderBookEntry.getCoinType(), CoinType.MONRY,
+                orderBookEntry.getCoinType(), buySide.getTargetCoinType(),
                 TradeAction.BUY,
                 buyInfo.getOriPrice(), minAmount,
                 buyInfo.getNormalizePrice()));
+
+//        if(tradePair.getTradePair_2().getTradePlatform().equals(TradePlatform.BINANCE)) {
+//            binanceTrade = tradePair.getTradePair_2();
+//        }
+//
+//        SignalTrade btcBalanceTrade = judgeBinanceBTCBalance(binanceTrade);
+//        if(btcBalanceTrade != null) {
+//            tradePair.setTradePair_3(btcBalanceTrade);
+//        }
+
         return tradePair;
     }
 

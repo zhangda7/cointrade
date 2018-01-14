@@ -1,6 +1,5 @@
 package com.spare.cointrade.trade;
 
-import com.spare.cointrade.ExchangeContext;
 import com.spare.cointrade.model.Account;
 import com.spare.cointrade.model.Balance;
 import com.spare.cointrade.model.CoinType;
@@ -28,22 +27,22 @@ public class AccountManager {
         platformAccountMap.put(account.getTradePlatform(), account);
     }
 
-    /**
-     * 统一化各个平台的现金获取
-     * 全部转换为CNY返回
-     * @param tradePlatform
-     * @return
-     */
-    public double getNormalizeCNY(TradePlatform tradePlatform) {
-        switch (tradePlatform) {
-            case BITHUMB:
-                return platformAccountMap.get(TradePlatform.BITHUMB).getBalanceMap().get(CoinType.KRW).getFreeAmount() * ExchangeContext.KRW2CNY();
-            case BINANCE:
-                return platformAccountMap.get(TradePlatform.BINANCE).getBalanceMap().get(CoinType.CNY).getFreeAmount();
-            default:
-                return 0.0;
-        }
-    }
+//    /**
+//     * 统一化各个平台的现金获取
+//     * 全部转换为CNY返回
+//     * @param tradePlatform
+//     * @return
+//     */
+//    public double getNormalizeCNY(TradePlatform tradePlatform) {
+//        switch (tradePlatform) {
+//            case BITHUMB:
+//                return platformAccountMap.get(TradePlatform.BITHUMB).getBalanceMap().get(CoinType.KRW).getFreeAmount() * ExchangeContext.KRW2CNY();
+//            case BINANCE:
+//                return platformAccountMap.get(TradePlatform.BINANCE).getBalanceMap().get(CoinType.CNY).getFreeAmount();
+//            default:
+//                return 0.0;
+//        }
+//    }
 
     public Double getFreeAmount(TradePlatform tradePlatform, CoinType coinType) {
         return platformAccountMap.get(tradePlatform).getBalanceMap().get(coinType).getFreeAmount();
@@ -95,7 +94,7 @@ public class AccountManager {
         account.getBalanceMap().put(CoinType.QTUM, new Balance(CoinType.QTUM, 100.0, 0.0));
         account.getBalanceMap().put(CoinType.EOS, new Balance(CoinType.EOS, 100.0, 0.0));
         account.getBalanceMap().put(CoinType.BTG, new Balance(CoinType.EOS, 100.0, 0.0));
-         account.getBalanceMap().put(CoinType.CNY, new Balance(CoinType.CNY, 10000.0, 0.0));
+         account.getBalanceMap().put(CoinType.USDT, new Balance(CoinType.USDT, 1000.0, 0.0));
         return account;
     }
 }

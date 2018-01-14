@@ -21,4 +21,7 @@ public class TradingFeesUtil {
         feesMap.put(TradePlatform.BINANCE, 0.001);
     }
 
+    public static Double getTradeFee(TradePlatform tradePlatform) {
+        return feesMap.get(tradePlatform);
+    }
 }

@@ -9,10 +9,7 @@ import com.spare.cointrade.log.TradeChanceLog;
 import com.spare.cointrade.model.*;
 import com.spare.cointrade.service.TradeHistoryService;
 import com.spare.cointrade.trade.AccountManager;
-import com.spare.cointrade.util.AkkaContext;
-import com.spare.cointrade.util.CoinTradeConstants;
-import com.spare.cointrade.util.ConfigContext;
-import com.spare.cointrade.util.ListingDepthUtil;
+import com.spare.cointrade.util.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -316,33 +313,28 @@ public class TradeJudgeV3 {
         if(minAmount < coinMinTradeAmount) {
             return null;
         }
-        SignalTrade binanceTrade = null;
+
+        //TODO 添加手续费的判断，计算每个平台的交易数量
+        //手续费的基本扣除：扣除收取到的资产
+        //买的数量不动
+        Double buyAmount = minAmount;
+
+        //sell时，卖出固定的买的时候实际收到的资产
+        Double sellAmount = minAmount * (1 - TradingFeesUtil.getTradeFee(buySide.getTradePlatform()));
 
         ListingDepth.DepthInfo sellInfo = ListingDepthUtil.getLevelDepthInfo(sellSide.getBuyDepth(), MONITOR_DEPTH_LEVEL);
         tradePair.setTradePair_1(makeOneTrade(sellSide.getTradePlatform(),
                 orderBookEntry.getCoinType(), sellSide.getTargetCoinType(), // 应该为buySide.targetCoinType
                 TradeAction.SELL,
-                sellInfo.getOriPrice(), minAmount,
+                sellInfo.getOriPrice(), sellAmount,
                 sellInfo.getNormalizePrice()));
-//        if(tradePair.getTradePair_1().getTradePlatform().equals(TradePlatform.BINANCE)) {
-//            binanceTrade = tradePair.getTradePair_1();
-//        }
 
         ListingDepth.DepthInfo buyInfo = ListingDepthUtil.getLevelDepthInfo(buySide.getSellDepth(), MONITOR_DEPTH_LEVEL);
         tradePair.setTradePair_2(makeOneTrade(buySide.getTradePlatform(),
                 orderBookEntry.getCoinType(), buySide.getTargetCoinType(),
                 TradeAction.BUY,
-                buyInfo.getOriPrice(), minAmount,
+                buyInfo.getOriPrice(), buyAmount,
                 buyInfo.getNormalizePrice()));
-
-//        if(tradePair.getTradePair_2().getTradePlatform().equals(TradePlatform.BINANCE)) {
-//            binanceTrade = tradePair.getTradePair_2();
-//        }
-//
-//        SignalTrade btcBalanceTrade = judgeBinanceBTCBalance(binanceTrade);
-//        if(btcBalanceTrade != null) {
-//            tradePair.setTradePair_3(btcBalanceTrade);
-//        }
 
         return tradePair;
     }

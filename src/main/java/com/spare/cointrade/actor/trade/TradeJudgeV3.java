@@ -77,6 +77,15 @@ public class TradeJudgeV3 {
         ConfigContext.getINSTANCE().addProfit(profit);
         mockDoTrade(tradePair, tradePair.getTradePair_1(), profit);
         mockDoTrade(tradePair, tradePair.getTradePair_2(), profit);
+        double preNorProfit = normalizeProfit.getValue();
+        if(tradePair.getTradeDirection().equals(TradeDirection.FORWARD)) {
+            normalizeProfit.setValue(tradePair.getNormalizePriceDelta());
+        } else if(tradePair.getTradeDirection().equals(TradeDirection.REVERSE)) {
+            normalizeProfit.setValue(-1 * tradePair.getNormalizePriceDelta());
+        } else {
+            throw new IllegalArgumentException("Trade direction is wrong:" + tradePair.getTradeDirection());
+        }
+        logger.info("Normalise profit change {} -> {}", preNorProfit, normalizeProfit.getValue());
         canTrade = false;
         this.tradeStateSyncer.tell(tradePair, ActorRef.noSender());
     }
@@ -91,7 +100,7 @@ public class TradeJudgeV3 {
         tradeHistory.setTargetCoinType(signalTrade.getTargetCoin());
         tradeHistory.setPrice(signalTrade.getPrice());
         tradeHistory.setAmount(signalTrade.getAmount());
-        tradeHistory.setResult(TradeResult.TRADING);
+        tradeHistory.setResult(signalTrade.getResult());
         tradeHistory.setProfit(profit);
         Account account = AccountManager.INSTANCE.getPlatformAccountMap().get(signalTrade.getTradePlatform());
         Balance sourceBalance = account.getBalanceMap().get(signalTrade.getSourceCoin());
@@ -181,8 +190,6 @@ public class TradeJudgeV3 {
             if(maxDeltaPair == null) {
                 continue;
             }
-            //注意，这里使用绝对值了
-            normalizeProfit.setValue(Math.abs(orderBookEntry.getNormaliseDelta()));
             tradePairList.add(maxDeltaPair);
         }
         return tradePairList;
@@ -214,7 +221,6 @@ public class TradeJudgeV3 {
             if(maxDeltaPair == null) {
                 continue;
             }
-            normalizeProfit.setValue(Math.abs(orderBookEntry.getNormaliseDelta()) * -1);
             tradePairList.add(maxDeltaPair);
         }
         return tradePairList;
@@ -277,6 +283,7 @@ public class TradeJudgeV3 {
                                        OrderBookEntry orderBookEntry, TradeDirection tradeDirection) {
         TradePair tradePair = new TradePair();
         tradePair.setTradeDirection(tradeDirection);
+        tradePair.setNormalizePriceDelta(orderBookEntry.getNormaliseDelta());
         double maxSellAmount = Math.min(ListingDepthUtil.getLevelDepthInfo(sellSide.getBuyDepth(), MONITOR_DEPTH_LEVEL).getAmount(),
                 AccountManager.INSTANCE.getFreeAmount(sellSide.getTradePlatform(), orderBookEntry.getCoinType()));
 
@@ -311,6 +318,9 @@ public class TradeJudgeV3 {
         minAmount = Math.min(minAmount, ConfigContext.getINSTANCE().getMaxTradeAmount(orderBookEntry.getCoinType()));
 
         if(minAmount < coinMinTradeAmount) {
+            tradeChanceLogger.info("Min amount is {} < {}, just return [{} {} {}] [{} {} {}]",
+                    minAmount, coinMinTradeAmount, buySide.getTradePlatform(), buySide.getSourceCoinType(), buySide.getTargetCoinType(),
+                    sellSide.getTradePlatform(), sellSide.getSourceCoinType(), sellSide.getTargetCoinType());
             return null;
         }
 
@@ -336,7 +346,35 @@ public class TradeJudgeV3 {
                 buyInfo.getOriPrice(), buyAmount,
                 buyInfo.getNormalizePrice()));
 
+        //TODO 增加BTC的关联交易
+        SignalTrade btcTrade = balanceBinanceBTC(tradePair.getTradePair_1());
+        if(btcTrade != null) {
+//            tradePair.setTradePair_3(btcTrade);
+        } else {
+            btcTrade = balanceBinanceBTC(tradePair.getTradePair_2());
+            if(btcTrade != null) {
+//                tradePair.setTradePair_3(btcTrade);
+            }
+        }
         return tradePair;
+    }
+
+    private SignalTrade balanceBinanceBTC(SignalTrade signalTrade) {
+        if(! signalTrade.getTradePlatform().equals(TradePlatform.BINANCE)) {
+            return null;
+        }
+        if(! signalTrade.getTargetCoin().equals(CoinType.BTC)) {
+            return null;
+        }
+        SignalTrade btcTrade = null;
+//        SignalTrade btcTrade = makeOneTrade(signalTrade.getTradePlatform(),
+//                CoinType.BTC, CoinType.USDT,
+//                TradeAction.BUY,
+//                buyInfo.getOriPrice(), buyAmount,
+//                buyInfo.getNormalizePrice())
+//        Double preAmount = AccountManager.INSTANCE.getFreeAmount(TradePlatform.BINANCE, CoinType.BTC);
+        //这个关联交易还是比较复杂的，如果要买入BTC的话，还要检查USDT的钱够不够
+        return btcTrade;
     }
 
     /**
@@ -358,6 +396,7 @@ public class TradeJudgeV3 {
         signalTrade.setPrice(price);
         signalTrade.setNormalizePrice(normalizePrice);
         signalTrade.setAmount(amount);
+        signalTrade.setResult(TradeResult.TRADING);
         return signalTrade;
     }
 

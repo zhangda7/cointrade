@@ -15,7 +15,7 @@ public class Ewma {
     }
 
     public void setValue(Double newVal) {
-        if(this.value == null) {
+        if(this.value == 0.0) {
             this.value = newVal;
             return;
         }

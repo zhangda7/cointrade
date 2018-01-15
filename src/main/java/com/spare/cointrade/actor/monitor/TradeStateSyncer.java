@@ -5,20 +5,22 @@ import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.ActorSelection;
 import akka.actor.Props;
+import com.spare.cointrade.actor.trade.TradeJudge;
 import com.spare.cointrade.model.*;
 import com.spare.cointrade.service.TradeHistoryService;
 import com.spare.cointrade.trade.AccountManager;
 import com.spare.cointrade.util.AkkaContext;
 import com.spare.cointrade.util.CoinTradeConstants;
 import io.netty.util.concurrent.DefaultThreadFactory;
+import io.netty.util.internal.ConcurrentSet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+import java.util.Set;
+import java.util.concurrent.*;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
@@ -34,7 +36,9 @@ public class TradeStateSyncer extends AbstractActor {
         return Props.create(TradeStateSyncer.class, () -> new TradeStateSyncer());
     }
 
-    private static Map<String, TradePair> toCheckedPair = new HashMap<>();
+    private static final Object HOLDER = new Object();
+
+    private static ConcurrentHashMap<String, TradePair> toCheckedPair = new ConcurrentHashMap<>();
 
     private static ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(1, new DefaultThreadFactory("TradeStateSyncer-"));
 
@@ -45,17 +49,18 @@ public class TradeStateSyncer extends AbstractActor {
     public TradeStateSyncer() {
         listingInfoMonitor = AkkaContext.getSystem().actorSelection(
                 AkkaContext.getFullActorName(CoinTradeConstants.ACTOR_LISTING_INFO_MONITOR));
+
+        scheduledExecutorService.scheduleWithFixedDelay(new MockUpdateTrade(), 5, 5, TimeUnit.SECONDS);
     }
 
     @Override
     public Receive createReceive() {
         return receiveBuilder().match(TradePair.class, (tradePair -> {
             try {
-                reentrantLock.lock();
+//                reentrantLock.lock();
                 logger.info("Receive trade pair {}", tradePair.getPairId());
                 toCheckedPair.put(tradePair.getPairId(), tradePair);
-                scheduledExecutorService.schedule(new MockUpdateTrade(), 5, TimeUnit.SECONDS);
-                reentrantLock.unlock();
+//                reentrantLock.unlock();
             } catch (Exception e) {
                 logger.error("ERROR ", e);
             }
@@ -66,31 +71,51 @@ public class TradeStateSyncer extends AbstractActor {
 
         @Override
         public void run() {
+            if(! reentrantLock.tryLock()) {
+                return;
+            }
             reentrantLock.lock();
-            for (Map.Entry<String, TradePair> entry : toCheckedPair.entrySet()) {
+            Set<String> toRemove = new HashSet<>();
+            for (TradePair tradePair : toCheckedPair.values()) {
                 try {
-                    entry.getValue().getTradePair_1().setResult(TradeResult.SUCCESS);
-                    entry.getValue().getTradePair_2().setResult(TradeResult.SUCCESS);
-                    logger.info("Update pair {} to success", entry.getKey());
-                    TradeHistoryService.INSTANCE.updatePairResult(entry.getKey(), TradeResult.SUCCESS.name());
-                    listingInfoMonitor.tell(entry.getValue(), ActorRef.noSender());
+                    syncSignalTradeResult(tradePair.getTradePair_1());
+                    syncSignalTradeResult(tradePair.getTradePair_2());
+                    syncSignalTradeResult(tradePair.getTradePair_3());
+                    if(tradePair.getTradePair_1().getResult().equals(TradeResult.SUCCESS) &&
+                            tradePair.getTradePair_2().getResult().equals(TradeResult.SUCCESS)) {
+                        if(tradePair.getTradePair_3() != null) {
+                            if(tradePair.getTradePair_3().getResult().equals(TradeResult.SUCCESS)) {
+                                toRemove.add(tradePair.getPairId());
+                            }
+                        } else {
+                            toRemove.add(tradePair.getPairId());
+                        }
+                    }
+                    logger.info("Update pair {} to success", tradePair.getPairId());
+                    TradeHistoryService.INSTANCE.updatePairResult(tradePair.getPairId(), TradeResult.SUCCESS.name());
+                    listingInfoMonitor.tell(tradePair, ActorRef.noSender());
                 } catch (Exception e) {
                     logger.error("ERROR ", e);
                 }
             }
-            toCheckedPair.clear();
-            reentrantLock.unlock();
-
-        }
-
-        private void balanceBinanceBTC(TradePair tradePair) {
-            if(tradePair.getTradePair_1().getTradePlatform().equals(TradePlatform.BINANCE)) {
-                SignalTrade signalTrade = tradePair.getTradePair_1();
-//                signalTrade.ge
+            for (String key : toRemove) {
+                toCheckedPair.remove(key);
             }
-            Double preAmount = AccountManager.INSTANCE.getFreeAmount(TradePlatform.BINANCE, CoinType.BTC);
-
+            toRemove.clear();
+            reentrantLock.unlock();
         }
+
+        private void syncSignalTradeResult(SignalTrade signalTrade) {
+            if(signalTrade == null) {
+                return;
+            }
+            if(signalTrade.getResult() != null && signalTrade.getResult().equals(TradeResult.SUCCESS)) {
+                return;
+            }
+            signalTrade.setResult(TradeResult.SUCCESS);
+        }
+
+
     }
 
 

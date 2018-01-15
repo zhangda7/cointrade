@@ -94,7 +94,7 @@ public class TradeHistoryService {
 
     public List<TradeHistory> list() throws SQLException {
         List<TradeHistory> tradeHistoryList = new ArrayList<>();
-        String selectSQL = "SELECT * FROM trade_history order by id desc limit 200";
+        String selectSQL = "SELECT * FROM trade_history order by id desc limit 400";
         PreparedStatement preparedStatement = this.connection.prepareStatement(selectSQL);
 //        preparedStatement.setInt(1, 1001);
         ResultSet rs = preparedStatement.executeQuery();

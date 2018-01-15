@@ -31,5 +31,8 @@ public class TradePair {
 //    public TradePair() {
 //        this.signalTradeList = new ArrayList<>();
 //    }
-
+    /**
+     * 2次交易的归一化到10000元的价格差
+     */
+    private Double normalizePriceDelta;
 }

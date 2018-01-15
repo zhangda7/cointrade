@@ -79,7 +79,7 @@ public class AccountManager {
         account.getBalanceMap().put(CoinType.LTC, new Balance(CoinType.LTC, 100.0, 0.0));
         account.getBalanceMap().put(CoinType.QTUM, new Balance(CoinType.QTUM, 100.0, 0.0));
         account.getBalanceMap().put(CoinType.EOS, new Balance(CoinType.EOS, 100.0, 0.0));
-        account.getBalanceMap().put(CoinType.BTG, new Balance(CoinType.EOS, 100.0, 0.0));
+        account.getBalanceMap().put(CoinType.BTG, new Balance(CoinType.BTG, 100.0, 0.0));
         account.getBalanceMap().put(CoinType.KRW, new Balance(CoinType.KRW, 200000.0, 0.0));
         return account;
     }
@@ -93,7 +93,7 @@ public class AccountManager {
         account.getBalanceMap().put(CoinType.LTC, new Balance(CoinType.LTC, 100.0, 0.0));
         account.getBalanceMap().put(CoinType.QTUM, new Balance(CoinType.QTUM, 100.0, 0.0));
         account.getBalanceMap().put(CoinType.EOS, new Balance(CoinType.EOS, 100.0, 0.0));
-        account.getBalanceMap().put(CoinType.BTG, new Balance(CoinType.EOS, 100.0, 0.0));
+        account.getBalanceMap().put(CoinType.BTG, new Balance(CoinType.BTG, 100.0, 0.0));
          account.getBalanceMap().put(CoinType.USDT, new Balance(CoinType.USDT, 1000.0, 0.0));
         return account;
     }

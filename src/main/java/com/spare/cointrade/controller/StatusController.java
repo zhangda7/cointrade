@@ -77,7 +77,7 @@ public class StatusController {
         restfulPage.setCode(CODE_SUCCESS);
         JSONObject jsonObject = new JSONObject();
         jsonObject.put("totalNomalizeProfit", String.valueOf(ConfigContext.getINSTANCE().getTotalProfit()));
-        jsonObject.put("normalizeProfit", String.valueOf(TradeJudgeV3.normalizeProfit));
+        jsonObject.put("normalizeProfit", String.valueOf(TradeJudgeV3.normalizeProfit.getValue()));
         restfulPage.setData(JSON.toJSONString(jsonObject));
         return JSON.toJSONString(restfulPage);
     }

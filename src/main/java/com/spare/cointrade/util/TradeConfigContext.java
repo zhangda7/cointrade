@@ -3,7 +3,7 @@ package com.spare.cointrade.util;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.spare.cointrade.model.CoinType;
-import com.spare.cointrade.model.Ewma;
+import com.spare.cointrade.model.OrderBookHistory;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,11 +13,12 @@ import javax.annotation.PostConstruct;
 import java.io.*;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Component
-public class ConfigContext {
+public class TradeConfigContext {
 
-    private static Logger logger = LoggerFactory.getLogger(ConfigContext.class);
+    private static Logger logger = LoggerFactory.getLogger(TradeConfigContext.class);
 
     private Double totalProfit = 0.0;
 
@@ -27,7 +28,9 @@ public class ConfigContext {
         totalProfit += profit;
     }
 
-    private static ConfigContext INSTANCE;
+    private static TradeConfigContext INSTANCE;
+
+    private static Map<CoinType, OrderBookHistory> orderBookHistoryMap = new ConcurrentHashMap<>();
 
     private File configFile;
 
@@ -76,6 +79,39 @@ public class ConfigContext {
         return 0.0;
     }
 
+    public Map<CoinType, OrderBookHistory> getOrderBookHistoryMap() {
+        return orderBookHistoryMap;
+    }
+
+    public OrderBookHistory getOrderBookHistory(CoinType coinType) {
+        if(orderBookHistoryMap.containsKey(coinType)) {
+            return orderBookHistoryMap.get(coinType);
+        }
+        OrderBookHistory orderBookHistory = new OrderBookHistory();
+        orderBookHistory.setCoinType(coinType);
+        orderBookHistoryMap.put(coinType, orderBookHistory);
+        return orderBookHistory;
+    }
+
+    /**
+     * 更新该币种的历史成交信息
+     * @param coinType
+     * @param normalizeOriPrice 仅仅是该币归一化到同一单位的差值。并非归一化到10000的差值。可正可负
+     * @param amount
+     */
+    public void updateOrderBookHistory(CoinType coinType, Double normalizeOriPrice, Double amount) {
+        if(! orderBookHistoryMap.containsKey(coinType)) {
+            OrderBookHistory orderBookHistory = new OrderBookHistory();
+            orderBookHistory.setCoinType(coinType);
+            orderBookHistoryMap.put(coinType, new OrderBookHistory());
+        }
+        OrderBookHistory orderBookHistory = orderBookHistoryMap.get(coinType);
+        orderBookHistory.setTotalAmount(orderBookHistory.getTotalAmount() + amount);
+        orderBookHistory.setTotalProfit(orderBookHistory.getTotalProfit() + normalizeOriPrice * amount);
+        orderBookHistory.setAverageProfit(orderBookHistory.getTotalProfit() / orderBookHistory.getTotalAmount());
+        orderBookHistory.setUpdateTs(System.currentTimeMillis());
+    }
+
     private void updateFile(File file, String content) {
         try {
             file.createNewFile(); // 创建新文件
@@ -97,7 +133,7 @@ public class ConfigContext {
 
     }
 
-    public static ConfigContext getINSTANCE() {
+    public static TradeConfigContext getINSTANCE() {
         return INSTANCE;
     }
 

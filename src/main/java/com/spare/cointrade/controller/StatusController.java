@@ -1,17 +1,15 @@
 package com.spare.cointrade.controller;
 
-import akka.actor.ActorRef;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
-import com.spare.cointrade.ExchangeContext;
 import com.spare.cointrade.actor.monitor.ListingInfoMonitor;
 import com.spare.cointrade.actor.trade.TradeJudge;
 import com.spare.cointrade.actor.trade.TradeJudgeV2;
 import com.spare.cointrade.actor.trade.TradeJudgeV3;
 import com.spare.cointrade.model.*;
 import com.spare.cointrade.service.TradeHistoryService;
-import com.spare.cointrade.util.ConfigContext;
+import com.spare.cointrade.util.TradeConfigContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.StringUtils;
@@ -24,7 +22,6 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import java.util.Map;
 
 /**
  * Created by dada on 2017/7/16.
@@ -73,11 +70,22 @@ public class StatusController {
 
     @RequestMapping("/monitorStatus")
     public String listingMonitorStatus() {
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
         RestfulPage restfulPage = new RestfulPage();
         restfulPage.setCode(CODE_SUCCESS);
         JSONObject jsonObject = new JSONObject();
-        jsonObject.put("totalNomalizeProfit", String.valueOf(ConfigContext.getINSTANCE().getTotalProfit()));
-        jsonObject.put("normalizeProfit", String.valueOf(TradeJudgeV3.normalizeProfit.getValue()));
+        jsonObject.put("totalNomalizeProfit", String.valueOf(TradeConfigContext.getINSTANCE().getTotalProfit()));
+        JSONArray historyList = new JSONArray();
+        for (OrderBookHistory orderBookHistory : TradeConfigContext.getINSTANCE().getOrderBookHistoryMap().values()) {
+            JSONObject history = new JSONObject();
+            history.put("coinType", orderBookHistory.getCoinType());
+            history.put("totalProfit", orderBookHistory.getTotalProfit());
+            history.put("totalAmount", orderBookHistory.getTotalAmount());
+            history.put("averageProfit", orderBookHistory.getAverageProfit());
+            history.put("updateDate", sdf.format(new Date(orderBookHistory.getUpdateTs())));
+            historyList.add(history);
+        }
+        jsonObject.put("profitHistoryList", historyList);
         restfulPage.setData(JSON.toJSONString(jsonObject));
         return JSON.toJSONString(restfulPage);
     }
@@ -87,14 +95,6 @@ public class StatusController {
         RestfulPage restfulPage = new RestfulPage();
         restfulPage.setCode(CODE_SUCCESS);
         restfulPage.setData(JSON.toJSONString(TradeJudgeV3.chanceTradeMap.values()));
-        return JSON.toJSONString(restfulPage);
-    }
-
-    @RequestMapping("/listingNormalizeProfit")
-    public String listingNormalizeProfit() {
-        RestfulPage restfulPage = new RestfulPage();
-        restfulPage.setCode(CODE_SUCCESS);
-        restfulPage.setData(String.valueOf(TradeJudgeV3.normalizeProfit.getValue()));
         return JSON.toJSONString(restfulPage);
     }
 

@@ -29,7 +29,7 @@ public class TradeJudgeV3 {
 
     public static Map<String, OrderBookEntry> chanceTradeMap = new ConcurrentHashMap<>();
 
-    public static Ewma normalizeProfit = new Ewma();
+//    public static Ewma normalizeProfit = new Ewma();
 
     private static AtomicLong pairIdGenerator = new AtomicLong();
 
@@ -74,18 +74,24 @@ public class TradeJudgeV3 {
         } else {
             profit = total_2 - total_1;
         }
-        ConfigContext.getINSTANCE().addProfit(profit);
+        TradeConfigContext.getINSTANCE().addProfit(profit);
         mockDoTrade(tradePair, tradePair.getTradePair_1(), profit);
         mockDoTrade(tradePair, tradePair.getTradePair_2(), profit);
-        double preNorProfit = normalizeProfit.getValue();
+        OrderBookHistory orderBookHistory = TradeConfigContext.getINSTANCE().getOrderBookHistory(tradePair.getTradePair_1().getSourceCoin());
+        double preTotalProfit = orderBookHistory.getTotalProfit();
+        double preAmount = orderBookHistory.getTotalAmount();
+        double preAverageProfit = orderBookHistory.getAverageProfit();
         if(tradePair.getTradeDirection().equals(TradeDirection.FORWARD)) {
-            normalizeProfit.setValue(tradePair.getNormalizePriceDelta());
+            TradeConfigContext.getINSTANCE().updateOrderBookHistory(tradePair.getTradePair_1().getSourceCoin(),
+                    tradePair.getNormalizePriceDelta(), tradePair.getTradePair_1().getAmount());
         } else if(tradePair.getTradeDirection().equals(TradeDirection.REVERSE)) {
-            normalizeProfit.setValue(-1 * tradePair.getNormalizePriceDelta());
+            TradeConfigContext.getINSTANCE().updateOrderBookHistory(tradePair.getTradePair_1().getSourceCoin(),
+                    tradePair.getNormalizePriceDelta() * -1, tradePair.getTradePair_1().getAmount());
         } else {
             throw new IllegalArgumentException("Trade direction is wrong:" + tradePair.getTradeDirection());
         }
-        logger.info("Normalise profit change {} -> {}", preNorProfit, normalizeProfit.getValue());
+        logger.info("Normalise profit change [{} {} {}] -> [{} {} {}]", preTotalProfit, preAmount, preAverageProfit,
+                orderBookHistory.getTotalProfit(), orderBookHistory.getTotalAmount(), orderBookHistory.getAverageProfit());
         canTrade = false;
         this.tradeStateSyncer.tell(tradePair, ActorRef.noSender());
     }
@@ -211,12 +217,16 @@ public class TradeJudgeV3 {
             }
         });
         for(OrderBookEntry orderBookEntry : entryList) {
-            if(Math.abs(orderBookEntry.getNormaliseDelta()) > normalizeProfit.getValue() * REVERSE_AVERAGE_NORMALIZE_PERCENT) {
+            OrderBookHistory orderBookHistory = TradeConfigContext.getINSTANCE().getOrderBookHistory(orderBookEntry.getCoinType());
+            if(Math.abs(orderBookEntry.getNormaliseDelta()) > orderBookHistory.getAverageProfit() * REVERSE_AVERAGE_NORMALIZE_PERCENT) {
                 continue;
             }
-
+//            if(Math.abs(orderBookEntry.getNormaliseDelta()) > normalizeProfit.getValue() * REVERSE_AVERAGE_NORMALIZE_PERCENT) {
+//                continue;
+//            }
+//
             tradeChanceLogger.info("Can do reverse trade, cur delta {}, EWMA delta{}",
-                    orderBookEntry.getNormaliseDelta(), normalizeProfit.getValue(), JSON.toJSONString(orderBookEntry));
+                    orderBookEntry.getNormaliseDelta(), orderBookHistory.getAverageProfit(), JSON.toJSONString(orderBookEntry));
             TradePair maxDeltaPair = createReverseTradePair(orderBookEntry);
             if(maxDeltaPair == null) {
                 continue;
@@ -306,7 +316,7 @@ public class TradeJudgeV3 {
             /**
              * 把总收益的百分比也加上，反转时不能超出这个阈值
              */
-            double maxReverseMoney = ConfigContext.getINSTANCE().getTotalProfit() * REVERSE_TOTAL_NORLAIZE_PERCENT;
+            double maxReverseMoney = TradeConfigContext.getINSTANCE().getTotalProfit() * REVERSE_TOTAL_NORLAIZE_PERCENT;
 
             //暂时使用买方的归一化价格来计算最小交易数量
 //        double minAmount2 = maxReverseMoney / buySide.getBuyDepth().getDepthInfoMap().firstEntry().getValue().getNormalizePrice();
@@ -315,7 +325,7 @@ public class TradeJudgeV3 {
             minAmount = Math.min(minAmount, minAmount2);
         }
 
-        minAmount = Math.min(minAmount, ConfigContext.getINSTANCE().getMaxTradeAmount(orderBookEntry.getCoinType()));
+        minAmount = Math.min(minAmount, TradeConfigContext.getINSTANCE().getMaxTradeAmount(orderBookEntry.getCoinType()));
 
         if(minAmount < coinMinTradeAmount) {
             tradeChanceLogger.info("Min amount is {} < {}, just return [{} {} {}] [{} {} {}]",
@@ -347,15 +357,20 @@ public class TradeJudgeV3 {
                 buyInfo.getNormalizePrice()));
 
         //TODO 增加BTC的关联交易
-        SignalTrade btcTrade = balanceBinanceBTC(tradePair.getTradePair_1());
-        if(btcTrade != null) {
-//            tradePair.setTradePair_3(btcTrade);
-        } else {
-            btcTrade = balanceBinanceBTC(tradePair.getTradePair_2());
+        try {
+            SignalTrade btcTrade = balanceBinanceBTC(tradePair.getTradePair_1());
             if(btcTrade != null) {
+//            tradePair.setTradePair_3(btcTrade);
+            } else {
+                btcTrade = balanceBinanceBTC(tradePair.getTradePair_2());
+                if(btcTrade != null) {
 //                tradePair.setTradePair_3(btcTrade);
+                }
             }
+        } catch (Exception e) {
+            logger.error("ERROR on balance btc", e);
         }
+
         return tradePair;
     }
 
@@ -367,13 +382,39 @@ public class TradeJudgeV3 {
             return null;
         }
         SignalTrade btcTrade = null;
-//        SignalTrade btcTrade = makeOneTrade(signalTrade.getTradePlatform(),
-//                CoinType.BTC, CoinType.USDT,
-//                TradeAction.BUY,
-//                buyInfo.getOriPrice(), buyAmount,
-//                buyInfo.getNormalizePrice())
-//        Double preAmount = AccountManager.INSTANCE.getFreeAmount(TradePlatform.BINANCE, CoinType.BTC);
+        Double costBtc = signalTrade.getPrice() * signalTrade.getAmount();
+        ListingFullInfo btcFullInfo = ListingInfoMonitor.listingFullInfoMap.get(
+                toiListingInfoKey(signalTrade.getTradePlatform(), CoinType.BTC));
+
+        if(signalTrade.getTradeAction().equals(TradeAction.BUY)) {
+            //cost btc,need buy btc
+            ListingDepth.DepthInfo depthInfo = ListingDepthUtil.getLevelDepthInfo(btcFullInfo.getSellDepth(), MONITOR_DEPTH_LEVEL);
+            double maxBuyAmount = AccountManager.INSTANCE.getFreeAmount(
+                    signalTrade.getTradePlatform(), CoinType.USDT) / depthInfo.getOriPrice();
+            if(maxBuyAmount < costBtc) {
+                throw new RuntimeException("Not enough USDT to buy " + costBtc + "BTC");
+            }
+            btcTrade = makeOneTrade(signalTrade.getTradePlatform(),
+                CoinType.BTC, CoinType.USDT,
+                TradeAction.BUY,
+                depthInfo.getOriPrice(), costBtc,
+                depthInfo.getNormalizePrice());
+        } else if(signalTrade.getTradeAction().equals(TradeAction.SELL)){
+            // need sell btc
+            ListingDepth.DepthInfo depthInfo = ListingDepthUtil.getLevelDepthInfo(btcFullInfo.getBuyDepth(), MONITOR_DEPTH_LEVEL);
+            Double curBtcCount = AccountManager.INSTANCE.getFreeAmount(
+                    signalTrade.getTradePlatform(), CoinType.BTC);
+            if(curBtcCount < costBtc) {
+                throw new RuntimeException("Not enough BTC to sell " + costBtc + "BTC");
+            }
+            btcTrade = makeOneTrade(signalTrade.getTradePlatform(),
+                    CoinType.BTC, CoinType.USDT,
+                    TradeAction.SELL,
+                    depthInfo.getOriPrice(), costBtc,
+                    depthInfo.getNormalizePrice());
+        }
         //这个关联交易还是比较复杂的，如果要买入BTC的话，还要检查USDT的钱够不够
+
         return btcTrade;
     }
 

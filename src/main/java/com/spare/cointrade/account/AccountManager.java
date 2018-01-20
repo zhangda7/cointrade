@@ -1,4 +1,4 @@
-package com.spare.cointrade.trade;
+package com.spare.cointrade.account;
 
 import com.spare.cointrade.model.Account;
 import com.spare.cointrade.model.Balance;

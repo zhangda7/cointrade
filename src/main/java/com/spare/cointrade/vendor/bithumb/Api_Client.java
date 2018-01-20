@@ -38,6 +38,22 @@ public class Api_Client {
 		return result;
 	}
 
+	/**
+	 * 获取depth信息
+	 * https://api.bithumb.com/public/orderbook/{currency}
+	 * @param currency BTC, ETH, DASH, LTC, ETC, XRP, BCH, XMR, ZEC, QTUM, BTG, EOS (基本值: BTC), ALL(全部
+
+	 * @return
+	 */
+	public String fetchBalance() {
+		HashMap<String, String> rgParams = new HashMap<String, String>();
+		rgParams.put("apiKey", this.api_key);
+		rgParams.put("secretKey", this.api_secret);
+		rgParams.put("currency", "ALL");//默认获取全部的
+		String result = this.callApi("/info/balance", rgParams);
+		return result;
+	}
+
     /**
      * ������ �ð��� ns�� �����Ѵ�.(1/1,000,000,000 ��)
      * 

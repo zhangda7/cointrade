@@ -8,7 +8,7 @@ import com.spare.cointrade.actor.monitor.ListingInfoMonitor;
 import com.spare.cointrade.log.TradeChanceLog;
 import com.spare.cointrade.model.*;
 import com.spare.cointrade.service.TradeHistoryService;
-import com.spare.cointrade.trade.AccountManager;
+import com.spare.cointrade.account.AccountManager;
 import com.spare.cointrade.util.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

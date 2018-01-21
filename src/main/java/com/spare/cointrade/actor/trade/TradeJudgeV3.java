@@ -154,6 +154,11 @@ public class TradeJudgeV3 {
             doTrade(tradePair);
         }
 
+        if(tradePairList.size() > 0) {
+            //如果当前存在正向的交易，则反向交易不做
+            return;
+        }
+
         List<TradePair> reverseTradePairList = findReverseTradeChance();
         if(reverseTradePairList == null) {
             logger.warn("Not found reverse trade pair for normal direction");
@@ -217,14 +222,17 @@ public class TradeJudgeV3 {
             }
         });
         for(OrderBookEntry orderBookEntry : entryList) {
-            OrderBookHistory orderBookHistory = TradeConfigContext.getINSTANCE().getOrderBookHistory(orderBookEntry.getCoinType());
-            if(Math.abs(orderBookEntry.getNormaliseDelta()) > orderBookHistory.getAverageProfit() * REVERSE_AVERAGE_NORMALIZE_PERCENT) {
-                continue;
-            }
-//            if(Math.abs(orderBookEntry.getNormaliseDelta()) > normalizeProfit.getValue() * REVERSE_AVERAGE_NORMALIZE_PERCENT) {
+//            OrderBookHistory orderBookHistory = TradeConfigContext.getINSTANCE().getOrderBookHistory(orderBookEntry.getCoinType());
+//            if(Math.abs(orderBookEntry.getNormaliseDelta()) > orderBookHistory.getAverageProfit() * REVERSE_AVERAGE_NORMALIZE_PERCENT) {
 //                continue;
 //            }
-//
+            for(Map.Entry<CoinType,OrderBookHistory> entry : TradeConfigContext.getINSTANCE().getOrderBookHistoryMap().entrySet()) {
+                OrderBookHistory orderBookHistory = entry.getValue();
+                if(Math.abs(orderBookEntry.getNormaliseDelta()) > orderBookHistory.getAverageProfit() * REVERSE_AVERAGE_NORMALIZE_PERCENT) {
+                    continue;
+                }
+                //TODO 再这里增加更详细的判断 how?
+            }
             tradeChanceLogger.info("Can do reverse trade, cur delta {}, EWMA delta{}",
                     orderBookEntry.getNormaliseDelta(), orderBookHistory.getAverageProfit(), JSON.toJSONString(orderBookEntry));
             TradePair maxDeltaPair = createReverseTradePair(orderBookEntry);
@@ -324,6 +332,100 @@ public class TradeJudgeV3 {
 
             minAmount = Math.min(minAmount, minAmount2);
         }
+
+        minAmount = Math.min(minAmount, TradeConfigContext.getINSTANCE().getMaxTradeAmount(orderBookEntry.getCoinType()));
+
+        if(minAmount < coinMinTradeAmount) {
+            tradeChanceLogger.info("Min amount is {} < {}, just return [{} {} {}] [{} {} {}]",
+                    minAmount, coinMinTradeAmount, buySide.getTradePlatform(), buySide.getSourceCoinType(), buySide.getTargetCoinType(),
+                    sellSide.getTradePlatform(), sellSide.getSourceCoinType(), sellSide.getTargetCoinType());
+            return null;
+        }
+
+        //TODO 添加手续费的判断，计算每个平台的交易数量
+        //手续费的基本扣除：扣除收取到的资产
+        //买的数量不动
+        Double buyAmount = minAmount;
+
+        //sell时，卖出固定的买的时候实际收到的资产
+        Double sellAmount = minAmount * (1 - TradingFeesUtil.getTradeFee(buySide.getTradePlatform()));
+
+        ListingDepth.DepthInfo sellInfo = ListingDepthUtil.getLevelDepthInfo(sellSide.getBuyDepth(), MONITOR_DEPTH_LEVEL);
+        tradePair.setTradePair_1(makeOneTrade(sellSide.getTradePlatform(),
+                orderBookEntry.getCoinType(), sellSide.getTargetCoinType(), // 应该为buySide.targetCoinType
+                TradeAction.SELL,
+                sellInfo.getOriPrice(), sellAmount,
+                sellInfo.getNormalizePrice()));
+
+        ListingDepth.DepthInfo buyInfo = ListingDepthUtil.getLevelDepthInfo(buySide.getSellDepth(), MONITOR_DEPTH_LEVEL);
+        tradePair.setTradePair_2(makeOneTrade(buySide.getTradePlatform(),
+                orderBookEntry.getCoinType(), buySide.getTargetCoinType(),
+                TradeAction.BUY,
+                buyInfo.getOriPrice(), buyAmount,
+                buyInfo.getNormalizePrice()));
+
+        //TODO 增加BTC的关联交易
+        try {
+            SignalTrade btcTrade = balanceBinanceBTC(tradePair.getTradePair_1());
+            if(btcTrade != null) {
+//            tradePair.setTradePair_3(btcTrade);
+            } else {
+                btcTrade = balanceBinanceBTC(tradePair.getTradePair_2());
+                if(btcTrade != null) {
+//                tradePair.setTradePair_3(btcTrade);
+                }
+            }
+        } catch (Exception e) {
+            logger.error("ERROR on balance btc", e);
+        }
+
+        return tradePair;
+    }
+
+    /**
+     * 判断是否存在反向交易
+     * 1.如果能执行到这个函数，说明目前已经没有正向交易可以执行
+     * 2.
+     * @param buySide 要买进（价格低）的平台，需查询sell 价
+     * @param sellSide 要卖出（价格高）的平台，需查询buy 价
+     * @param orderBookEntry
+     * @return
+     */
+    private TradePair judgeAndMakeReversePair(ListingFullInfo buySide, ListingFullInfo sellSide,
+                                       OrderBookEntry orderBookEntry) {
+        TradePair tradePair = new TradePair();
+        tradePair.setTradeDirection(TradeDirection.REVERSE);
+        tradePair.setNormalizePriceDelta(orderBookEntry.getNormaliseDelta());
+        double maxSellAmount = Math.min(ListingDepthUtil.getLevelDepthInfo(sellSide.getBuyDepth(), MONITOR_DEPTH_LEVEL).getAmount(),
+                AccountManager.INSTANCE.getFreeAmount(sellSide.getTradePlatform(), orderBookEntry.getCoinType()));
+
+        ListingDepth.DepthInfo sellDepth = ListingDepthUtil.getLevelDepthInfo(buySide.getSellDepth(), MONITOR_DEPTH_LEVEL);
+
+        double maxBuyAmount = AccountManager.INSTANCE.getFreeAmount(
+                buySide.getTradePlatform(), buySide.getTargetCoinType()) / sellDepth.getOriPrice();
+//        double maxDepthBuyAmount = sellDepth.getAmount() * sellDepth.getOriPrice();
+//        double maxBuyAmount = Math.min(ListingDepthUtil.getLevelDepthInfo(buySide.getSellDepth(), MONITOR_DEPTH_LEVEL).getAmount(),
+//                AccountManager.INSTANCE.getFreeAmount(buySide.getTradePlatform(), buySide.getTargetCoinType()));
+
+        double minAmount = Math.min(maxSellAmount, maxBuyAmount);
+
+        Double coinMinTradeAmount = minCoinTradeAmountMap.get(buySide.getSourceCoinType());
+        if(coinMinTradeAmount == null) {
+            coinMinTradeAmount = MIN_TRADE_AMOUNT;
+        }
+
+//        if(tradeDirection.equals(TradeDirection.REVERSE)) {
+            /**
+             * 把总收益的百分比也加上，反转时不能超出这个阈值
+             */
+            double maxReverseMoney = TradeConfigContext.getINSTANCE().getTotalProfit() * REVERSE_TOTAL_NORLAIZE_PERCENT;
+
+            //暂时使用买方的归一化价格来计算最小交易数量
+//        double minAmount2 = maxReverseMoney / buySide.getBuyDepth().getDepthInfoMap().firstEntry().getValue().getNormalizePrice();
+            double minAmount2 = maxReverseMoney / ListingDepthUtil.getLevelDepthInfo(buySide.getBuyDepth(), MONITOR_DEPTH_LEVEL).getNormalizePrice();
+
+            minAmount = Math.min(minAmount, minAmount2);
+//        }
 
         minAmount = Math.min(minAmount, TradeConfigContext.getINSTANCE().getMaxTradeAmount(orderBookEntry.getCoinType()));
 

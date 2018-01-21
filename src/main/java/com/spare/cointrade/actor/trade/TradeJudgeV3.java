@@ -29,8 +29,6 @@ public class TradeJudgeV3 {
 
     public static Map<String, OrderBookEntry> chanceTradeMap = new ConcurrentHashMap<>();
 
-//    public static Ewma normalizeProfit = new Ewma();
-
     private static AtomicLong pairIdGenerator = new AtomicLong();
 
     private static boolean canTrade = true;
@@ -242,6 +240,17 @@ public class TradeJudgeV3 {
             tradePairList.add(maxDeltaPair);
         }
         return tradePairList;
+    }
+
+    private Map<Double, CoinType> sortOrderBookHistoryMap(Map<CoinType, OrderBookHistory> orderBookHistoryMap) {
+        if(orderBookHistoryMap == null) {
+            return null;
+        }
+        TreeMap<Double, CoinType> sorted = new TreeMap<>();
+        for (Map.Entry<CoinType,OrderBookHistory> entry : orderBookHistoryMap.entrySet()) {
+            sorted.put(entry.getValue().getAverageProfit(), entry.getKey());
+        }
+        return sorted;
     }
 
     /**

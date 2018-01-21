@@ -8,6 +8,11 @@ public enum TradeResult {
 
     FAIL,
 
-    PARTIAL_SUCCESS;
+    PARTIAL_SUCCESS,
+
+    /**
+     * 代表提币的流程
+     */
+    PROCESSING;
 
 }

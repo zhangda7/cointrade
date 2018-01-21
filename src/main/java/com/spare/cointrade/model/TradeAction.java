@@ -8,7 +8,8 @@ public enum  TradeAction {
     BUY("BUY"),
     SELL("SELL"),
     HOLD("HOLD"),
-    FAIL("FAIL");
+    FAIL("FAIL"),
+    WITH_DRAW("WITH_DRAW");
 
     private String value;
 

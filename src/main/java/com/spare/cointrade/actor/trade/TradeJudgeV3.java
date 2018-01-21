@@ -387,7 +387,8 @@ public class TradeJudgeV3 {
                 }
             }
         } catch (Exception e) {
-            logger.error("ERROR on balance btc", e);
+            logger.error("ERROR on balance btc {}", e.getMessage());
+            return null;
         }
 
         return tradePair;

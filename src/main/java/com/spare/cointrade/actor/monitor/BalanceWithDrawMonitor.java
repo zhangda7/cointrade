@@ -1,7 +1,6 @@
 package com.spare.cointrade.actor.monitor;
 
 import com.alibaba.fastjson.JSON;
-import com.spare.cointrade.ExchangeContext;
 import com.spare.cointrade.account.AccountManager;
 import com.spare.cointrade.model.*;
 import com.spare.cointrade.service.TradeHistoryService;
@@ -16,6 +15,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * 使用提现平衡两边币值的monitor

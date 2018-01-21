@@ -75,6 +75,7 @@ public class TradeJudgeV3 {
         TradeConfigContext.getINSTANCE().addProfit(profit);
         mockDoTrade(tradePair, tradePair.getTradePair_1(), profit);
         mockDoTrade(tradePair, tradePair.getTradePair_2(), profit);
+        mockDoTrade(tradePair, tradePair.getTradePair_3(), profit);
         OrderBookHistory orderBookHistory = TradeConfigContext.getINSTANCE().getOrderBookHistory(tradePair.getTradePair_1().getSourceCoin());
         double preTotalProfit = orderBookHistory.getTotalProfit();
         double preAmount = orderBookHistory.getTotalAmount();
@@ -95,6 +96,9 @@ public class TradeJudgeV3 {
     }
 
     private void mockDoTrade(TradePair tradePair, SignalTrade signalTrade, double profit) {
+        if(signalTrade == null) {
+            return;
+        }
         TradeHistory tradeHistory = new TradeHistory();
         tradeHistory.setPairId(tradePair.getPairId());
         tradeHistory.setDirection(tradePair.getTradeDirection().name());
@@ -379,11 +383,11 @@ public class TradeJudgeV3 {
         try {
             SignalTrade btcTrade = balanceBinanceBTC(tradePair.getTradePair_1());
             if(btcTrade != null) {
-//            tradePair.setTradePair_3(btcTrade);
+                tradePair.setTradePair_3(btcTrade);
             } else {
                 btcTrade = balanceBinanceBTC(tradePair.getTradePair_2());
                 if(btcTrade != null) {
-//                tradePair.setTradePair_3(btcTrade);
+                    tradePair.setTradePair_3(btcTrade);
                 }
             }
         } catch (Exception e) {

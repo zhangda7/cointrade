@@ -230,14 +230,15 @@ public class TradeJudgeV3 {
                     continue;
                 }
                 //TODO 再这里增加更详细的判断 how?
+                tradeChanceLogger.info("Can do reverse trade, cur delta {}, EWMA delta{}",
+                        orderBookEntry.getNormaliseDelta(), orderBookHistory.getAverageProfit(), JSON.toJSONString(orderBookEntry));
+                TradePair maxDeltaPair = createReverseTradePair(orderBookEntry);
+                if(maxDeltaPair == null) {
+                    continue;
+                }
+                tradePairList.add(maxDeltaPair);
+                return tradePairList;
             }
-            tradeChanceLogger.info("Can do reverse trade, cur delta {}, EWMA delta{}",
-                    orderBookEntry.getNormaliseDelta(), orderBookHistory.getAverageProfit(), JSON.toJSONString(orderBookEntry));
-            TradePair maxDeltaPair = createReverseTradePair(orderBookEntry);
-            if(maxDeltaPair == null) {
-                continue;
-            }
-            tradePairList.add(maxDeltaPair);
         }
         return tradePairList;
     }

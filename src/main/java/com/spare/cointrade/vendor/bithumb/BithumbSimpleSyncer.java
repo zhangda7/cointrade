@@ -99,7 +99,7 @@ public class BithumbSimpleSyncer implements Runnable {
         for (OrderBookInfo.ListingPair listingPair : listingPairList) {
             ListingDepth.DepthInfo depthInfo = listingDepth.new DepthInfo();
             depthInfo.setOriPrice(listingPair.getPrice());
-            depthInfo.setNormalizePrice(ExchangeContext.normalizeToCNY(CoinType.KRW, listingPair.getPrice()));
+            depthInfo.setNormalizePrice(ExchangeContext.normalizeToUSD(CoinType.KRW, listingPair.getPrice()));
 //            depthInfo.setNormalizePrice(listingPair.getPrice() * ExchangeContext.KRW2CNY());
             depthInfo.setAmount(listingPair.getQuantity());
             depthInfo.setTotalNormalizePrice(depthInfo.getNormalizePrice() * depthInfo.getAmount());

@@ -61,13 +61,32 @@ public class BinanceSimpleSyncer implements Runnable {
     public void run() {
         try {
             int count = 10;
+            //1.USDT
             syncOneCoin(CoinType.BTC, CoinType.USDT, 5);
             syncOneCoin(CoinType.ETH, CoinType.USDT, count);
             syncOneCoin(CoinType.LTC, CoinType.USDT, count);
+            syncOneCoin(CoinType.BNB, CoinType.USDT, count);
+
+            //2.BTC
+            syncOneCoin(CoinType.ETH, CoinType.BTC, count);
+            syncOneCoin(CoinType.LTC, CoinType.BTC, count);
             syncOneCoin(CoinType.QTUM, CoinType.BTC, count);
             syncOneCoin(CoinType.EOS, CoinType.BTC, count);
             syncOneCoin(CoinType.BTG, CoinType.BTC, count);
 
+//            //3.ETH
+//            syncOneCoin(CoinType.ETH, CoinType.BTC, count);
+//            syncOneCoin(CoinType.LTC, CoinType.BTC, count);
+//            syncOneCoin(CoinType.QTUM, CoinType.BTC, count);
+//            syncOneCoin(CoinType.EOS, CoinType.BTC, count);
+//            syncOneCoin(CoinType.BTG, CoinType.BTC, count);
+//
+//            //4.BNB
+//            syncOneCoin(CoinType.ETH, CoinType.BTC, count);
+//            syncOneCoin(CoinType.LTC, CoinType.BTC, count);
+//            syncOneCoin(CoinType.QTUM, CoinType.BTC, count);
+//            syncOneCoin(CoinType.EOS, CoinType.BTC, count);
+//            syncOneCoin(CoinType.BTG, CoinType.BTC, count);
 //            syncOneCoin(CoinType.BCC, CoinType.USDT, count);
 //            syncOneCoin(CoinType.NEO, CoinType.USDT, count);
 
@@ -122,8 +141,7 @@ public class BinanceSimpleSyncer implements Runnable {
             depthInfo.setOriPrice(Double.parseDouble(listingPair.getPrice()));
 
             if(ExchangeContext.binanceCoinUsdtMap.containsKey(targetCoin)) {
-                depthInfo.setNormalizePrice(ExchangeContext.normalizeToCNY(
-                        CoinType.USDT, ExchangeContext.binanceCoinUsdtMap.get(targetCoin) * depthInfo.getOriPrice()));
+                depthInfo.setNormalizePrice(ExchangeContext.binanceCoinUsdtMap.get(targetCoin) * depthInfo.getOriPrice());
 //                depthInfo.setNormalizePrice(depthInfo.getOriPrice() * coinUsdtMap.get(targetCoin) * ExchangeContext.USD2CNY());
             } else {
                 depthInfo.setNormalizePrice(0.0);

@@ -1,12 +1,17 @@
 package com.spare.cointrade;
 
 import com.spare.cointrade.model.CoinType;
+import com.spare.cointrade.model.OpenExchangeData;
 import com.spare.cointrade.model.TradePlatform;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.zip.DeflaterOutputStream;
 
+/**
+ * fetch exchange from /home/admin/data/exchange.json
+ * or update from https://openexchangerates.org/api/lastest.json?app_id=${}
+ */
 public class ExchangeContext {
 
 //    public static CoinType[] toCheckedCoin = new CoinType[] {CoinType.BTC, CoinType.QTUM, CoinType.ETH};
@@ -18,17 +23,23 @@ public class ExchangeContext {
      */
     public static Map<CoinType, Double> binanceCoinUsdtMap = new HashMap<>();
 
-    private static double KRW2CNY() {
-        return 0.006107;
+    private static OpenExchangeData openExchangeData;
+
+    private static Double KRW2USD() {
+        return 1 / openExchangeData.getRates().get("KRW");
     }
+
+//    private static double KRW2CNY() {
+//        return 0.006107;
+//    }
 
 //    public static double USD2CNY() {
 //        return 6.4915;
 //    }
 
-    private static double USDT2CNY() {
-        return 6.4915;
-    }
+//    private static double USDT2CNY() {
+//        return 6.4915;
+//    }
 
     /**
      * 设定的归一化的币种
@@ -39,12 +50,12 @@ public class ExchangeContext {
         return CoinType.CNY;
     }
 
-    public static Double normalizeToCNY(CoinType coinType, Double oriPrice) {
+    public static Double normalizeToUSD(CoinType coinType, Double oriPrice) {
         switch (coinType) {
             case KRW:
-                return oriPrice * KRW2CNY();
+                return oriPrice * KRW2USD();
             case USDT:
-                return oriPrice * USDT2CNY();
+                return oriPrice;
             default:
                 return null;
         }

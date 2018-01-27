@@ -8,6 +8,8 @@ public enum CoinType {
 
     BTG,
 
+    BNB,
+
     LTC,
 
     BCH,

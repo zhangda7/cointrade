@@ -116,11 +116,11 @@ public class TradeJudgeV3 {
         if(signalTrade.getTargetCoin().equals(CoinType.KRW) ||
                 signalTrade.getTargetCoin().equals(CoinType.CNY)) {
             targetBalance = account.getMoneyBalance();
-            tradeHistory.setNormalizePrice(ExchangeContext.normalizeToCNY(signalTrade.getTargetCoin(), signalTrade.getPrice()));
+            tradeHistory.setNormalizePrice(ExchangeContext.normalizeToUSD(signalTrade.getTargetCoin(), signalTrade.getPrice()));
         } else {
             targetBalance = account.getBalanceMap().get(signalTrade.getTargetCoin());
             tradeHistory.setNormalizePrice(
-                    ExchangeContext.normalizeToCNY(CoinType.USDT,
+                    ExchangeContext.normalizeToUSD(CoinType.USDT,
                             signalTrade.getPrice() * ExchangeContext.currency2USDT(
                                     signalTrade.getTradePlatform(), signalTrade.getTargetCoin())));
         }
@@ -594,6 +594,12 @@ public class TradeJudgeV3 {
         }
     }
 
+    /**
+     * 根据传入的coin type，检查所有交易平台间的差价
+     * @param coinType cointype
+     * @param fullInfoMap fullinfoMap 所有平台该币种的信息
+     * @return
+     */
     private Map<String, OrderBookEntry> checkOneCoinTradeChance(CoinType coinType, Map<TradePlatform, ListingFullInfo> fullInfoMap) {
         if(fullInfoMap.size() < 2) {
             logger.warn("Coin {} list is {} < 2, just skip", coinType, fullInfoMap.size());

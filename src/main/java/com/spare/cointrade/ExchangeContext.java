@@ -1,8 +1,10 @@
 package com.spare.cointrade;
 
+import com.alibaba.fastjson.JSON;
 import com.spare.cointrade.model.CoinType;
 import com.spare.cointrade.model.OpenExchangeData;
 import com.spare.cointrade.model.TradePlatform;
+import com.spare.cointrade.util.FileUtil;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -10,13 +12,20 @@ import java.util.zip.DeflaterOutputStream;
 
 /**
  * fetch exchange from /home/admin/data/exchange.json
- * or update from https://openexchangerates.org/api/lastest.json?app_id=${}
+ * or update from https://openexchangerates.org/api/latest.json?app_id=${}
  */
 public class ExchangeContext {
 
 //    public static CoinType[] toCheckedCoin = new CoinType[] {CoinType.BTC, CoinType.QTUM, CoinType.ETH};
 
     public static CoinType[] toCheckedCoin = new CoinType[] {CoinType.BTC, CoinType.ETH, CoinType.LTC, CoinType.QTUM, CoinType.EOS, CoinType.BTG};
+
+    private static final String OPEN_EXCHANGE_FILE = "E:\\home\\admin\\data\\exchange.txt";
+
+    static {
+        String openExchange = FileUtil.readFileByLinesToOneString(OPEN_EXCHANGE_FILE);
+        openExchangeData = JSON.parseObject(openExchange, OpenExchangeData.class);
+    }
 
     /**
      * 存储各个币种对USDT的转换数目
@@ -28,18 +37,6 @@ public class ExchangeContext {
     private static Double KRW2USD() {
         return 1 / openExchangeData.getRates().get("KRW");
     }
-
-//    private static double KRW2CNY() {
-//        return 0.006107;
-//    }
-
-//    public static double USD2CNY() {
-//        return 6.4915;
-//    }
-
-//    private static double USDT2CNY() {
-//        return 6.4915;
-//    }
 
     /**
      * 设定的归一化的币种

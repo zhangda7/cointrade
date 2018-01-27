@@ -597,7 +597,7 @@ public class TradeJudgeV3 {
     /**
      * 根据传入的coin type，检查所有交易平台间的差价
      * @param coinType cointype
-     * @param fullInfoMap fullinfoMap 所有平台该币种的信息
+     * @param fullInfoMap fullinfoMap 所有平台该币种的信息, key是平台，value是挂牌信息
      * @return
      */
     private Map<String, OrderBookEntry> checkOneCoinTradeChance(CoinType coinType, Map<TradePlatform, ListingFullInfo> fullInfoMap) {
@@ -646,20 +646,28 @@ public class TradeJudgeV3 {
         orderBookEntry.setAmount(amount);
         orderBookEntry.setDelta(Math.abs(delta));
         if(delta >= 0) {
-            orderBookEntry.setPlatform1(fullInfo1.getTradePlatform());
-            orderBookEntry.setPlatform2(fullInfo2.getTradePlatform());
+            setDetailCoin(orderBookEntry, fullInfo1, fullInfo2);
+
             orderBookEntry.setNormaliseDelta(10000 /
                     fullSellInfo_2.getNormalizePrice() *
                     fullSellInfo_1.getNormalizePrice() - 10000);
         } else {
-            orderBookEntry.setPlatform1(fullInfo2.getTradePlatform());
-            orderBookEntry.setPlatform2(fullInfo1.getTradePlatform());
+            setDetailCoin(orderBookEntry, fullInfo2, fullInfo1);
+
             orderBookEntry.setNormaliseDelta(10000 /
                     fullSellInfo_1.getNormalizePrice() *
                     fullSellInfo_2.getNormalizePrice() - 10000);
         }
 
         return orderBookEntry;
+    }
+
+    private void setDetailCoin(OrderBookEntry orderBookEntry, ListingFullInfo highInfo, ListingFullInfo lowInfo) {
+        orderBookEntry.setPlatform1(highInfo.getTradePlatform());
+        orderBookEntry.setTargetCoinType1(highInfo.getTargetCoinType());
+
+        orderBookEntry.setPlatform2(lowInfo.getTradePlatform());
+        orderBookEntry.setTargetCoinType2(lowInfo.getTargetCoinType());
     }
 
 }

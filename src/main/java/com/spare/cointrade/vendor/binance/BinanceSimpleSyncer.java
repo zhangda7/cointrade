@@ -74,21 +74,11 @@ public class BinanceSimpleSyncer implements Runnable {
             syncOneCoin(CoinType.EOS, CoinType.BTC, count);
             syncOneCoin(CoinType.BTG, CoinType.BTC, count);
 
-//            //3.ETH
-//            syncOneCoin(CoinType.ETH, CoinType.BTC, count);
-//            syncOneCoin(CoinType.LTC, CoinType.BTC, count);
-//            syncOneCoin(CoinType.QTUM, CoinType.BTC, count);
-//            syncOneCoin(CoinType.EOS, CoinType.BTC, count);
-//            syncOneCoin(CoinType.BTG, CoinType.BTC, count);
-//
-//            //4.BNB
-//            syncOneCoin(CoinType.ETH, CoinType.BTC, count);
-//            syncOneCoin(CoinType.LTC, CoinType.BTC, count);
-//            syncOneCoin(CoinType.QTUM, CoinType.BTC, count);
-//            syncOneCoin(CoinType.EOS, CoinType.BTC, count);
-//            syncOneCoin(CoinType.BTG, CoinType.BTC, count);
-//            syncOneCoin(CoinType.BCC, CoinType.USDT, count);
-//            syncOneCoin(CoinType.NEO, CoinType.USDT, count);
+            //3.ETH
+            syncOneCoin(CoinType.LTC, CoinType.ETH, count);
+            syncOneCoin(CoinType.QTUM, CoinType.ETH, count);
+            syncOneCoin(CoinType.EOS, CoinType.ETH, count);
+            syncOneCoin(CoinType.BTG, CoinType.ETH, count);
 
         } catch (Exception e) {
             logger.error("ERROR ", e);
@@ -112,7 +102,7 @@ public class BinanceSimpleSyncer implements Runnable {
                 listingInfoMonitor.tell(listingFullInfo, ActorRef.noSender());
             }
         } catch (Exception e) {
-            logger.error("ERROR ", e);
+            logger.error("ERROR on syncOneCoin {} -> {}", sourceCoin, targetCoin, e);
         }
 
     }
@@ -142,7 +132,6 @@ public class BinanceSimpleSyncer implements Runnable {
 
             if(ExchangeContext.binanceCoinUsdtMap.containsKey(targetCoin)) {
                 depthInfo.setNormalizePrice(ExchangeContext.binanceCoinUsdtMap.get(targetCoin) * depthInfo.getOriPrice());
-//                depthInfo.setNormalizePrice(depthInfo.getOriPrice() * coinUsdtMap.get(targetCoin) * ExchangeContext.USD2CNY());
             } else {
                 depthInfo.setNormalizePrice(0.0);
             }

@@ -56,20 +56,21 @@ public class ListingFullInfo {
         });
     }
 
-    public String toFullKey() {
-        StringBuilder sb = new StringBuilder(200);
-        sb.append(tradePlatform.name() + "_");
-        sb.append(tradeType.name() + "_");
-        sb.append(sourceCoinType.name() + "_");
-        sb.append(targetCoinType.name() + "_");
-        return sb.toString();
-    }
+//    public String toFullKey() {
+//        StringBuilder sb = new StringBuilder(200);
+//        sb.append(tradePlatform.name() + "_");
+//        sb.append(tradeType.name() + "_");
+//        sb.append(sourceCoinType.name() + "_");
+//        sb.append(targetCoinType.name() + "_");
+//        return sb.toString();
+//    }
 
     public String toKey() {
         StringBuilder sb = new StringBuilder(200);
         sb.append(tradePlatform.name() + "_");
         sb.append(tradeType.name() + "_");
         sb.append(sourceCoinType.name() + "_");
+        sb.append(targetCoinType.name() + "_");
         return sb.toString();
     }
 }

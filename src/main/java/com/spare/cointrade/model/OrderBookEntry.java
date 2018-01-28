@@ -42,6 +42,11 @@ public class OrderBookEntry {
     private Double normaliseDelta;
 
     public String toKey() {
-        return platform1 + "_" + targetCoinType1 + "_" + platform2 + "_" + targetCoinType2 + "_" + coinType;
+        return coinType + "-" +
+                platform1 + "_" +
+                targetCoinType1 + "-" +
+                platform2 + "_" +
+                targetCoinType2;
+//        return platform1 + "_" + targetCoinType1 + "_" + platform2 + "_" + targetCoinType2 + "_" + coinType;
     }
 }

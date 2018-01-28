@@ -7,6 +7,7 @@ import java.util.Comparator;
 /**
  * 挂牌信息
  * 精确到一个平台的、一对交易币种
+ * 允许source coin是一种，target coin是不同的币种存在
  */
 @Data
 public class ListingFullInfo {

@@ -173,11 +173,12 @@ public class TradeJudgeV3 {
 
     }
 
-    public String toiListingInfoKey(TradePlatform tradePlatform, CoinType coinType) {
+    public String toiListingInfoKey(TradePlatform tradePlatform, CoinType sourceCoinType, CoinType targetCoinType) {
         StringBuilder sb = new StringBuilder(200);
         sb.append(tradePlatform.name() + "_");
         sb.append(TradeType.COIN_COIN.name() + "_");
-        sb.append(coinType.name() + "_");
+        sb.append(sourceCoinType.name() + "_");
+        sb.append(targetCoinType.name() + "_");
         return sb.toString();
     }
 
@@ -271,8 +272,8 @@ public class TradeJudgeV3 {
      * @return
      */
     private TradePair createReverseTradePair(OrderBookEntry maxEntry) {
-        ListingFullInfo fullInfo1 = ListingInfoMonitor.listingFullInfoMap.get(toiListingInfoKey(maxEntry.getPlatform1(), maxEntry.getCoinType()));
-        ListingFullInfo fullInfo2 = ListingInfoMonitor.listingFullInfoMap.get(toiListingInfoKey(maxEntry.getPlatform2(), maxEntry.getCoinType()));
+        ListingFullInfo fullInfo1 = ListingInfoMonitor.listingFullInfoMap.get(toiListingInfoKey(maxEntry.getPlatform1(), maxEntry.getCoinType(), maxEntry.getTargetCoinType1()));
+        ListingFullInfo fullInfo2 = ListingInfoMonitor.listingFullInfoMap.get(toiListingInfoKey(maxEntry.getPlatform2(), maxEntry.getCoinType(), maxEntry.getTargetCoinType2()));
         if(maxEntry.getDelta() > 0) {
             return judgeAndMakePair(fullInfo1, fullInfo2, maxEntry, TradeDirection.REVERSE);
         } else {
@@ -292,8 +293,8 @@ public class TradeJudgeV3 {
      * @return
      */
     private TradePair createTradePair(OrderBookEntry maxEntry) {
-        ListingFullInfo fullInfo1 = ListingInfoMonitor.listingFullInfoMap.get(toiListingInfoKey(maxEntry.getPlatform1(), maxEntry.getCoinType()));
-        ListingFullInfo fullInfo2 = ListingInfoMonitor.listingFullInfoMap.get(toiListingInfoKey(maxEntry.getPlatform2(), maxEntry.getCoinType()));
+        ListingFullInfo fullInfo1 = ListingInfoMonitor.listingFullInfoMap.get(toiListingInfoKey(maxEntry.getPlatform1(), maxEntry.getCoinType(), maxEntry.getTargetCoinType1()));
+        ListingFullInfo fullInfo2 = ListingInfoMonitor.listingFullInfoMap.get(toiListingInfoKey(maxEntry.getPlatform2(), maxEntry.getCoinType(), maxEntry.getTargetCoinType2()));
         if(maxEntry.getDelta() > 0) {
             //1 = 高价平台，应卖出
             //2 = 低价平台，应买进
@@ -502,7 +503,7 @@ public class TradeJudgeV3 {
         SignalTrade btcTrade = null;
         Double costBtc = signalTrade.getPrice() * signalTrade.getAmount();
         ListingFullInfo btcFullInfo = ListingInfoMonitor.listingFullInfoMap.get(
-                toiListingInfoKey(signalTrade.getTradePlatform(), CoinType.BTC));
+                toiListingInfoKey(signalTrade.getTradePlatform(), CoinType.BTC, CoinType.USDT));
 
         if(signalTrade.getTradeAction().equals(TradeAction.BUY)) {
             //cost btc,need buy btc
@@ -579,12 +580,13 @@ public class TradeJudgeV3 {
     private void updateTradeChanceMap() {
 
         for (CoinType coinType : ExchangeContext.toCheckedCoin) {
-            Map<TradePlatform, ListingFullInfo> fullInfoMap = new HashMap<>();
+            Map<String, ListingFullInfo> fullInfoMap = new HashMap<>();
             for (Map.Entry<String, ListingFullInfo> entry : ListingInfoMonitor.listingFullInfoMap.entrySet()) {
                 if(! entry.getValue().getSourceCoinType().equals(coinType)) {
                     continue;
                 }
-                fullInfoMap.put(entry.getValue().getTradePlatform(), entry.getValue());
+                String key = entry.getValue().getTradePlatform() + "_" + entry.getValue().getTargetCoinType();
+                fullInfoMap.put(key, entry.getValue());
             }
             Map<String, OrderBookEntry> orderBookEntryMap = checkOneCoinTradeChance(coinType, fullInfoMap);
             if(orderBookEntryMap == null) {
@@ -600,29 +602,30 @@ public class TradeJudgeV3 {
      * @param fullInfoMap fullinfoMap 所有平台该币种的信息, key是平台，value是挂牌信息
      * @return
      */
-    private Map<String, OrderBookEntry> checkOneCoinTradeChance(CoinType coinType, Map<TradePlatform, ListingFullInfo> fullInfoMap) {
+    private Map<String, OrderBookEntry> checkOneCoinTradeChance(CoinType coinType, Map<String, ListingFullInfo> fullInfoMap) {
         if(fullInfoMap.size() < 2) {
             logger.warn("Coin {} list is {} < 2, just skip", coinType, fullInfoMap.size());
             return null;
         }
         Map<String, OrderBookEntry> orderBookEntryMap = new HashMap<>();
-        Iterator<TradePlatform> tradePlatformIterable = fullInfoMap.keySet().iterator();
-        TradePlatform pre = null;
+        Iterator<String> tradePlatformTargetCoinIterable = fullInfoMap.keySet().iterator();
+        String preKey = null;
         //使用笛卡尔积的方式，对全部的platform进行组合计算
-        while (tradePlatformIterable.hasNext()) {
-            if(pre == null) {
-                pre = tradePlatformIterable.next();
+        while (tradePlatformTargetCoinIterable.hasNext()) {
+            if(preKey == null) {
+                preKey = tradePlatformTargetCoinIterable.next();
             }
-            TradePlatform cur = tradePlatformIterable.next();
+            String cur = tradePlatformTargetCoinIterable.next();
             if(cur == null) {
                 break;
             }
-            ListingFullInfo fullInfo1 = fullInfoMap.get(pre);
+            ListingFullInfo fullInfo1 = fullInfoMap.get(preKey);
             ListingFullInfo fullInfo2 = fullInfoMap.get(cur);
             OrderBookEntry orderBookEntry = checkTradeChanceBy2Platform(coinType, fullInfo1, fullInfo2);
             orderBookEntryMap.put(orderBookEntry.toKey(), orderBookEntry);
-            pre = cur;
+            preKey = cur;
         }
+
         return orderBookEntryMap;
 
     }

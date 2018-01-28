@@ -22,6 +22,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.TreeMap;
 
 /**
  * Created by dada on 2017/7/16.
@@ -94,7 +95,11 @@ public class StatusController {
     public String listingPriceDelta() {
         RestfulPage restfulPage = new RestfulPage();
         restfulPage.setCode(CODE_SUCCESS);
-        restfulPage.setData(JSON.toJSONString(TradeJudgeV3.chanceTradeMap.values()));
+//        restfulPage.setData(JSON.toJSONString(TradeJudgeV3.chanceTradeMap.values()));
+        TreeMap<String, OrderBookEntry> sorted = new TreeMap<>();
+        sorted.putAll(TradeJudgeV3.chanceTradeMap);
+
+        restfulPage.setData(JSON.toJSONString(sorted));
         return JSON.toJSONString(restfulPage);
     }
 

@@ -382,11 +382,11 @@ public class TradeJudgeV3 {
 
         //TODO 增加BTC的关联交易
         try {
-            SignalTrade btcTrade = balanceBinanceBTC(tradePair.getTradePair_1());
+            SignalTrade btcTrade = balanceThirdCoin(tradePair.getTradePair_1());
             if(btcTrade != null) {
                 tradePair.setTradePair_3(btcTrade);
             } else {
-                btcTrade = balanceBinanceBTC(tradePair.getTradePair_2());
+                btcTrade = balanceThirdCoin(tradePair.getTradePair_2());
                 if(btcTrade != null) {
                     tradePair.setTradePair_3(btcTrade);
                 }
@@ -399,143 +399,104 @@ public class TradeJudgeV3 {
         return tradePair;
     }
 
-//    /**
-//     * 判断是否存在反向交易
-//     * 1.如果能执行到这个函数，说明目前已经没有正向交易可以执行
-//     * 2.
-//     * @param buySide 要买进（价格低）的平台，需查询sell 价
-//     * @param sellSide 要卖出（价格高）的平台，需查询buy 价
-//     * @param orderBookEntry
-//     * @return
-//     */
-//    private TradePair judgeAndMakeReversePair(ListingFullInfo buySide, ListingFullInfo sellSide,
-//                                       OrderBookEntry orderBookEntry) {
-//        TradePair tradePair = new TradePair();
-//        tradePair.setTradeDirection(TradeDirection.REVERSE);
-//        tradePair.setNormalizePriceDelta(orderBookEntry.getNormaliseDelta());
-//        double maxSellAmount = Math.min(ListingDepthUtil.getLevelDepthInfo(sellSide.getBuyDepth(), MONITOR_DEPTH_LEVEL).getAmount(),
-//                AccountManager.INSTANCE.getFreeAmount(sellSide.getTradePlatform(), orderBookEntry.getCoinType()));
-//
-//        ListingDepth.DepthInfo sellDepth = ListingDepthUtil.getLevelDepthInfo(buySide.getSellDepth(), MONITOR_DEPTH_LEVEL);
-//
-//        double maxBuyAmount = AccountManager.INSTANCE.getFreeAmount(
-//                buySide.getTradePlatform(), buySide.getTargetCoinType()) / sellDepth.getOriPrice();
-////        double maxDepthBuyAmount = sellDepth.getAmount() * sellDepth.getOriPrice();
-////        double maxBuyAmount = Math.min(ListingDepthUtil.getLevelDepthInfo(buySide.getSellDepth(), MONITOR_DEPTH_LEVEL).getAmount(),
-////                AccountManager.INSTANCE.getFreeAmount(buySide.getTradePlatform(), buySide.getTargetCoinType()));
-//
-//        double minAmount = Math.min(maxSellAmount, maxBuyAmount);
-//
-//        Double coinMinTradeAmount = minCoinTradeAmountMap.get(buySide.getSourceCoinType());
-//        if(coinMinTradeAmount == null) {
-//            coinMinTradeAmount = MIN_TRADE_AMOUNT;
-//        }
-//
-////        if(tradeDirection.equals(TradeDirection.REVERSE)) {
-//            /**
-//             * 把总收益的百分比也加上，反转时不能超出这个阈值
-//             */
-//            double maxReverseMoney = TradeConfigContext.getINSTANCE().getTotalProfit() * REVERSE_TOTAL_NORLAIZE_PERCENT;
-//
-//            //暂时使用买方的归一化价格来计算最小交易数量
-////        double minAmount2 = maxReverseMoney / buySide.getBuyDepth().getDepthInfoMap().firstEntry().getValue().getNormalizePrice();
-//            double minAmount2 = maxReverseMoney / ListingDepthUtil.getLevelDepthInfo(buySide.getBuyDepth(), MONITOR_DEPTH_LEVEL).getNormalizePrice();
-//
-//            minAmount = Math.min(minAmount, minAmount2);
-////        }
-//
-//        minAmount = Math.min(minAmount, TradeConfigContext.getINSTANCE().getMaxTradeAmount(orderBookEntry.getCoinType()));
-//
-//        if(minAmount < coinMinTradeAmount) {
-//            tradeChanceLogger.info("Min amount is {} < {}, just return [{} {} {}] [{} {} {}]",
-//                    minAmount, coinMinTradeAmount, buySide.getTradePlatform(), buySide.getSourceCoinType(), buySide.getTargetCoinType(),
-//                    sellSide.getTradePlatform(), sellSide.getSourceCoinType(), sellSide.getTargetCoinType());
-//            return null;
-//        }
-//
-//        //TODO 添加手续费的判断，计算每个平台的交易数量
-//        //手续费的基本扣除：扣除收取到的资产
-//        //买的数量不动
-//        Double buyAmount = minAmount;
-//
-//        //sell时，卖出固定的买的时候实际收到的资产
-//        Double sellAmount = minAmount * (1 - TradingFeesUtil.getTradeFee(buySide.getTradePlatform()));
-//
-//        ListingDepth.DepthInfo sellInfo = ListingDepthUtil.getLevelDepthInfo(sellSide.getBuyDepth(), MONITOR_DEPTH_LEVEL);
-//        tradePair.setTradePair_1(makeOneTrade(sellSide.getTradePlatform(),
-//                orderBookEntry.getCoinType(), sellSide.getTargetCoinType(), // 应该为buySide.targetCoinType
-//                TradeAction.SELL,
-//                sellInfo.getOriPrice(), sellAmount,
-//                sellInfo.getNormalizePrice()));
-//
-//        ListingDepth.DepthInfo buyInfo = ListingDepthUtil.getLevelDepthInfo(buySide.getSellDepth(), MONITOR_DEPTH_LEVEL);
-//        tradePair.setTradePair_2(makeOneTrade(buySide.getTradePlatform(),
-//                orderBookEntry.getCoinType(), buySide.getTargetCoinType(),
-//                TradeAction.BUY,
-//                buyInfo.getOriPrice(), buyAmount,
-//                buyInfo.getNormalizePrice()));
-//
-//        //TODO 增加BTC的关联交易
-//        try {
-//            SignalTrade btcTrade = balanceBinanceBTC(tradePair.getTradePair_1());
-//            if(btcTrade != null) {
-////            tradePair.setTradePair_3(btcTrade);
-//            } else {
-//                btcTrade = balanceBinanceBTC(tradePair.getTradePair_2());
-//                if(btcTrade != null) {
-////                tradePair.setTradePair_3(btcTrade);
-//                }
-//            }
-//        } catch (Exception e) {
-//            logger.error("ERROR on balance btc", e);
-//        }
-//
-//        return tradePair;
-//    }
+    /**
+     * 平衡掉第三种币的差值
+     * 比如，BITHUMB ETH->KRW, BINANCE ETH->BTC，则需要再买或卖BTC，来平衡BTC的差值
+     * @param signalTrade
+     * @return
+     */
+    private SignalTrade balanceThirdCoin(SignalTrade signalTrade) {
+        //如果这个交易的目标coin是货币，则不需要平衡
+        if(signalTrade.getTargetCoin().equals(CoinType.KRW) ||
+                signalTrade.getTargetCoin().equals(CoinType.USDT) ||
+                signalTrade.getTargetCoin().equals(CoinType.USD)) {
+            return null;
+        }
 
-    private SignalTrade balanceBinanceBTC(SignalTrade signalTrade) {
+        //目前限定如果目标不是币安的，则返回
         if(! signalTrade.getTradePlatform().equals(TradePlatform.BINANCE)) {
             return null;
         }
-        if(! signalTrade.getTargetCoin().equals(CoinType.BTC)) {
-            return null;
-        }
+
         SignalTrade btcTrade = null;
-        Double costBtc = signalTrade.getPrice() * signalTrade.getAmount();
+        Double costTargetCoin = signalTrade.getPrice() * signalTrade.getAmount();
         ListingFullInfo btcFullInfo = ListingInfoMonitor.listingFullInfoMap.get(
-                toiListingInfoKey(signalTrade.getTradePlatform(), CoinType.BTC, CoinType.USDT));
+                toiListingInfoKey(signalTrade.getTradePlatform(), signalTrade.getTargetCoin(), CoinType.USDT));
 
         if(signalTrade.getTradeAction().equals(TradeAction.BUY)) {
             //cost btc,need buy btc
             ListingDepth.DepthInfo depthInfo = ListingDepthUtil.getLevelDepthInfo(btcFullInfo.getSellDepth(), MONITOR_DEPTH_LEVEL);
             double maxBuyAmount = AccountManager.INSTANCE.getFreeAmount(
                     signalTrade.getTradePlatform(), CoinType.USDT) / depthInfo.getOriPrice();
-            if(maxBuyAmount < costBtc) {
-                throw new RuntimeException("Not enough USDT to buy " + costBtc + "BTC");
+            if(maxBuyAmount < costTargetCoin) {
+                throw new RuntimeException("Not enough USDT to buy " + costTargetCoin + " " + signalTrade.getTargetCoin());
             }
             btcTrade = makeOneTrade(signalTrade.getTradePlatform(),
-                CoinType.BTC, CoinType.USDT,
-                TradeAction.BUY,
-                depthInfo.getOriPrice(), costBtc,
-                depthInfo.getNormalizePrice());
+                    signalTrade.getTargetCoin(), CoinType.USDT,
+                    TradeAction.BUY,
+                    depthInfo.getOriPrice(), costTargetCoin,
+                    depthInfo.getNormalizePrice());
         } else if(signalTrade.getTradeAction().equals(TradeAction.SELL)){
             // need sell btc
             ListingDepth.DepthInfo depthInfo = ListingDepthUtil.getLevelDepthInfo(btcFullInfo.getBuyDepth(), MONITOR_DEPTH_LEVEL);
-            Double curBtcCount = AccountManager.INSTANCE.getFreeAmount(
-                    signalTrade.getTradePlatform(), CoinType.BTC);
-            if(curBtcCount < costBtc) {
-                throw new RuntimeException("Not enough BTC to sell " + costBtc + "BTC");
+            Double curTargetCoinCount = AccountManager.INSTANCE.getFreeAmount(
+                    signalTrade.getTradePlatform(), signalTrade.getTargetCoin());
+            if(curTargetCoinCount < costTargetCoin) {
+                throw new RuntimeException("Not enough BTC to sell " + costTargetCoin + " " + signalTrade.getTargetCoin());
             }
             btcTrade = makeOneTrade(signalTrade.getTradePlatform(),
-                    CoinType.BTC, CoinType.USDT,
+                    signalTrade.getTargetCoin(), CoinType.USDT,
                     TradeAction.SELL,
-                    depthInfo.getOriPrice(), costBtc,
+                    depthInfo.getOriPrice(), costTargetCoin,
                     depthInfo.getNormalizePrice());
         }
-        //这个关联交易还是比较复杂的，如果要买入BTC的话，还要检查USDT的钱够不够
 
         return btcTrade;
     }
+
+//    private SignalTrade balanceBinanceBTC(SignalTrade signalTrade) {
+//        if(! signalTrade.getTradePlatform().equals(TradePlatform.BINANCE)) {
+//            return null;
+//        }
+//        if(! signalTrade.getTargetCoin().equals(CoinType.BTC)) {
+//            return null;
+//        }
+//        SignalTrade btcTrade = null;
+//        Double costBtc = signalTrade.getPrice() * signalTrade.getAmount();
+//        ListingFullInfo btcFullInfo = ListingInfoMonitor.listingFullInfoMap.get(
+//                toiListingInfoKey(signalTrade.getTradePlatform(), CoinType.BTC, CoinType.USDT));
+//
+//        if(signalTrade.getTradeAction().equals(TradeAction.BUY)) {
+//            //cost btc,need buy btc
+//            ListingDepth.DepthInfo depthInfo = ListingDepthUtil.getLevelDepthInfo(btcFullInfo.getSellDepth(), MONITOR_DEPTH_LEVEL);
+//            double maxBuyAmount = AccountManager.INSTANCE.getFreeAmount(
+//                    signalTrade.getTradePlatform(), CoinType.USDT) / depthInfo.getOriPrice();
+//            if(maxBuyAmount < costBtc) {
+//                throw new RuntimeException("Not enough USDT to buy " + costBtc + "BTC");
+//            }
+//            btcTrade = makeOneTrade(signalTrade.getTradePlatform(),
+//                CoinType.BTC, CoinType.USDT,
+//                TradeAction.BUY,
+//                depthInfo.getOriPrice(), costBtc,
+//                depthInfo.getNormalizePrice());
+//        } else if(signalTrade.getTradeAction().equals(TradeAction.SELL)){
+//            // need sell btc
+//            ListingDepth.DepthInfo depthInfo = ListingDepthUtil.getLevelDepthInfo(btcFullInfo.getBuyDepth(), MONITOR_DEPTH_LEVEL);
+//            Double curBtcCount = AccountManager.INSTANCE.getFreeAmount(
+//                    signalTrade.getTradePlatform(), CoinType.BTC);
+//            if(curBtcCount < costBtc) {
+//                throw new RuntimeException("Not enough BTC to sell " + costBtc + "BTC");
+//            }
+//            btcTrade = makeOneTrade(signalTrade.getTradePlatform(),
+//                    CoinType.BTC, CoinType.USDT,
+//                    TradeAction.SELL,
+//                    depthInfo.getOriPrice(), costBtc,
+//                    depthInfo.getNormalizePrice());
+//        }
+//        //这个关联交易还是比较复杂的，如果要买入BTC的话，还要检查USDT的钱够不够
+//
+//        return btcTrade;
+//    }
 
     /**
      * 对于已经计算好的2个交易对，找到最小的归一化价格，再调整他们的交易数量
@@ -650,13 +611,15 @@ public class TradeJudgeV3 {
         orderBookEntry.setDelta(Math.abs(delta));
         if(delta >= 0) {
             setDetailCoin(orderBookEntry, fullInfo1, fullInfo2);
-
+            orderBookEntry.setNormalisePrice1(fullSellInfo_1.getNormalizePrice());
+            orderBookEntry.setNormalisePrice2(fullSellInfo_2.getNormalizePrice());
             orderBookEntry.setNormaliseDelta(10000 /
                     fullSellInfo_2.getNormalizePrice() *
                     fullSellInfo_1.getNormalizePrice() - 10000);
         } else {
             setDetailCoin(orderBookEntry, fullInfo2, fullInfo1);
-
+            orderBookEntry.setNormalisePrice1(fullSellInfo_2.getNormalizePrice());
+            orderBookEntry.setNormalisePrice2(fullSellInfo_1.getNormalizePrice());
             orderBookEntry.setNormaliseDelta(10000 /
                     fullSellInfo_1.getNormalizePrice() *
                     fullSellInfo_2.getNormalizePrice() - 10000);

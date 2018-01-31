@@ -20,7 +20,7 @@ public class ExchangeContext {
 
     public static CoinType[] toCheckedCoin = new CoinType[] {CoinType.BTC, CoinType.ETH, CoinType.LTC, CoinType.QTUM, CoinType.EOS, CoinType.BTG};
 
-    private static final String OPEN_EXCHANGE_FILE = "E:\\home\\admin\\data\\exchange.txt";
+    private static final String OPEN_EXCHANGE_FILE = "/home/admin/data/exchange.txt";
 
     static {
         String openExchange = FileUtil.readFileByLinesToOneString(OPEN_EXCHANGE_FILE);

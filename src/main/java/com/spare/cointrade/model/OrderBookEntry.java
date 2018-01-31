@@ -21,6 +21,8 @@ public class OrderBookEntry {
      */
     private CoinType targetCoinType1;
 
+    private Double normalisePrice1;
+
     /**
      * 价格低的平台
      */
@@ -30,6 +32,9 @@ public class OrderBookEntry {
      * platform 2 的目标交易币种
      */
     private CoinType targetCoinType2;
+
+    private Double normalisePrice2;
+
 
     /**
      * 平台间差价

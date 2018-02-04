@@ -66,7 +66,7 @@ public class TradeJudgeV3 {
         tradePair.setPairId(String.valueOf(pairIdGenerator.incrementAndGet()));
         double total_1 = tradePair.getTradePair_1().getAmount() * tradePair.getTradePair_1().getNormalizePrice();
         double total_2 = tradePair.getTradePair_2().getAmount() * tradePair.getTradePair_2().getNormalizePrice();
-        double profit = 0.0;
+        double profit;
         if(tradePair.getTradePair_1().getTradeAction().equals(TradeAction.SELL)) {
             profit = total_1 - total_2;
         } else {
@@ -112,7 +112,7 @@ public class TradeJudgeV3 {
         tradeHistory.setProfit(profit);
         Account account = AccountManager.INSTANCE.getPlatformAccountMap().get(signalTrade.getTradePlatform());
         Balance sourceBalance = account.getBalanceMap().get(signalTrade.getSourceCoin());
-        Balance targetBalance = null;
+        Balance targetBalance;
         if(signalTrade.getTargetCoin().equals(CoinType.KRW) ||
                 signalTrade.getTargetCoin().equals(CoinType.CNY)) {
             targetBalance = account.getMoneyBalance();
@@ -212,17 +212,17 @@ public class TradeJudgeV3 {
     /**
      * 寻找正向的交易机会
      * 即找最小差价和最大差价，进行盈利的交易
-     * @return
+     * @return 寻找到的交易机会
      */
     private List<TradePair> findReverseTradeChance() {
         List<TradePair> tradePairList = new ArrayList<>();
         List<OrderBookEntry> entryList = new ArrayList<>();
         entryList.addAll(chanceTradeMap.values());
-        Collections.sort(entryList, new Comparator<OrderBookEntry>() {
-            @Override
-            public int compare(OrderBookEntry o1, OrderBookEntry o2) {
+        Collections.sort(entryList, (o1, o2) -> {
+//            @Override
+//            public int compare(OrderBookEntry o1, OrderBookEntry o2) {
                 return (int) (o1.getNormaliseDelta() - o2.getNormaliseDelta());
-            }
+//            }
         });
         for(OrderBookEntry orderBookEntry : entryList) {
 //            OrderBookHistory orderBookHistory = TradeConfigContext.getINSTANCE().getOrderBookHistory(orderBookEntry.getCoinType());

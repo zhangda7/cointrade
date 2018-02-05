@@ -19,6 +19,8 @@ public class ServiceChargeContext {
 
     private static Map<TradePlatform, Map<CoinType, Double>> serviceChargeMap = new HashMap<>();
 
+    public static Double MAX_SERVICE_CHARGR = 0.0015;
+
     /**
      * BITHUMB未优惠的费率 0.15%
      */

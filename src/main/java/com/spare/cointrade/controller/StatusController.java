@@ -76,6 +76,8 @@ public class StatusController {
         restfulPage.setCode(CODE_SUCCESS);
         JSONObject jsonObject = new JSONObject();
         jsonObject.put("totalNomalizeProfit", String.valueOf(TradeConfigContext.getINSTANCE().getTotalProfit()));
+        jsonObject.put("totalNomalizeFee", String.valueOf(TradeConfigContext.getINSTANCE().getTotalFee()));
+
         JSONArray historyList = new JSONArray();
         for (OrderBookHistory orderBookHistory : TradeConfigContext.getINSTANCE().getOrderBookHistoryMap().values()) {
             JSONObject history = new JSONObject();

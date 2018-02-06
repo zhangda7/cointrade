@@ -15,10 +15,16 @@ public class TradingFeesUtil {
 
     private static Map<TradePlatform, Double> feesMap = new HashMap<>();
 
+    public static boolean USE_BNB = false;
+
     static {
         feesMap.put(TradePlatform.BITHUMB, 0.0015);
 
-        feesMap.put(TradePlatform.BINANCE, 0.001);
+        if(USE_BNB) {
+            feesMap.put(TradePlatform.BINANCE, 0.0);
+        } else {
+            feesMap.put(TradePlatform.BINANCE, 0.001);
+        }
     }
 
     public static Double getTradeFee(TradePlatform tradePlatform) {

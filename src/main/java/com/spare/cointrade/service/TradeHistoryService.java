@@ -42,13 +42,14 @@ public class TradeHistoryService {
     public int insert(TradeHistory tradeHistory) {
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         String dateStr = sdf.format(new Date());
+        PreparedStatement preparedStatement = null;
         try {
             String sql = "INSERT INTO trade_history (platform, action, coin_type, target_coin_type, price, amount," +
                     "result, account_name, pre_account_source_amount, after_account_source_amount," +
                     "pre_account_target_amount, after_account_target_amount, comment, gmt_created, gmt_modified, " +
-                    "pairId, direction, profit, normalize_price)\n" +
-                    "VALUES ( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-            PreparedStatement preparedStatement = this.connection.prepareStatement(sql);
+                    "pairId, direction, profit, normalize_price, normalize_fee)\n" +
+                    "VALUES ( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            preparedStatement = this.connection.prepareStatement(sql);
             preparedStatement.setString(1, tradeHistory.getTradePlatform().name());
             preparedStatement.setString(2, tradeHistory.getTradeAction().name());
             preparedStatement.setString(3, tradeHistory.getCoinType().name());
@@ -68,10 +69,20 @@ public class TradeHistoryService {
             preparedStatement.setString(17, tradeHistory.getDirection());
             preparedStatement.setDouble(18, tradeHistory.getProfit());
             preparedStatement.setDouble(19, tradeHistory.getNormalizePrice());
+            preparedStatement.setDouble(20, tradeHistory.getNormalizeFee());
+
             int ret = preparedStatement.executeUpdate();
             return ret;
         } catch ( Exception e ) {
             logger.error("ERROR ", e);
+        } finally {
+            if(preparedStatement != null) {
+                try {
+                    preparedStatement.close();
+                } catch (SQLException e) {
+                    logger.error("ERROR ", e);
+                }
+            }
         }
         return 0;
     }
@@ -79,15 +90,24 @@ public class TradeHistoryService {
     public int updatePairResult(String pairId, String result) {
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:SS");
         String dateStr = sdf.format(new Date());
+        PreparedStatement preparedStatement = null;
         try {
             String sql = "UPDATE trade_history SET result = ? WHERE pairId = ?";
-            PreparedStatement preparedStatement = this.connection.prepareStatement(sql);
+            preparedStatement = this.connection.prepareStatement(sql);
             preparedStatement.setString(1, result);
             preparedStatement.setString(2, pairId);
             int ret = preparedStatement.executeUpdate();
             return ret;
         } catch ( Exception e ) {
             logger.error("ERROR ", e);
+        } finally {
+            if(preparedStatement != null) {
+                try {
+                    preparedStatement.close();
+                } catch (SQLException e) {
+                    logger.error("ERROR ", e);
+                }
+            }
         }
         return 0;
     }
@@ -117,6 +137,7 @@ public class TradeHistoryService {
             tradeHistory.setAfterAccountSourceAmount(rs.getDouble("after_account_source_amount"));
             tradeHistory.setPreAccountTargetAmount(rs.getDouble("pre_account_target_amount"));
             tradeHistory.setAfterAccountTargetAmount(rs.getDouble("after_account_target_amount"));
+            tradeHistory.setNormalizeFee(rs.getDouble("normalize_fee"));
             tradeHistory.setGmtCreated(rs.getString("gmt_created"));
             tradeHistoryList.add(tradeHistory);
         }
@@ -152,6 +173,7 @@ public class TradeHistoryService {
                     "pre_account_target_amount REAL, " +
                     "after_account_target_amount REAL, " +
                     "comment REAL, " +
+                    "normalize_fee REAL, " +
                     "gmt_created TEXT, gmt_modified TEXT)";
             stmt.executeUpdate(sql);
             stmt.close();

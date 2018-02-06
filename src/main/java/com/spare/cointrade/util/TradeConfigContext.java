@@ -22,10 +22,16 @@ public class TradeConfigContext {
 
     private Double totalProfit = 0.0;
 
+    private Double totalFee = 0.0;
+
     private Double normalizeProfit = 0.0;
 
     public synchronized void addProfit(Double profit) {
         totalProfit += profit;
+    }
+
+    public synchronized void addServiceFee(Double fee) {
+        totalFee += fee;
     }
 
     private static TradeConfigContext INSTANCE;
@@ -165,5 +171,9 @@ public class TradeConfigContext {
 
     public void setNormalizeProfit(Double normalizeProfit) {
         this.normalizeProfit = normalizeProfit;
+    }
+
+    public Double getTotalFee() {
+        return totalFee;
     }
 }

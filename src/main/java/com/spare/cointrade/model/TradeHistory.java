@@ -21,6 +21,8 @@ public class TradeHistory {
 
     private Double normalizePrice;
 
+    private Double normalizeFee;
+
     private Double amount;
 
     private String direction;

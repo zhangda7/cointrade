@@ -10,6 +10,7 @@ import com.spare.cointrade.model.*;
 import com.spare.cointrade.service.TradeHistoryService;
 import com.spare.cointrade.account.AccountManager;
 import com.spare.cointrade.util.*;
+import org.jcp.xml.dsig.internal.dom.DOMUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -66,13 +67,30 @@ public class TradeJudgeV3 {
         tradePair.setPairId(String.valueOf(pairIdGenerator.incrementAndGet()));
         double total_1 = tradePair.getTradePair_1().getAmount() * tradePair.getTradePair_1().getNormalizePrice();
         double total_2 = tradePair.getTradePair_2().getAmount() * tradePair.getTradePair_2().getNormalizePrice();
+        double total_3 = 0.0;
+        if(tradePair.getTradePair_3() != null) {
+            //仅用作平衡交易，不算做收入
+            total_3 = tradePair.getTradePair_3().getAmount() * tradePair.getTradePair_3().getNormalizePrice();
+        }
         double profit;
         if(tradePair.getTradePair_1().getTradeAction().equals(TradeAction.SELL)) {
             profit = total_1 - total_2;
         } else {
             profit = total_2 - total_1;
         }
+
+        Double fee1 = total_1 * TradingFeesUtil.getTradeFee(tradePair.getTradePair_1().getTradePlatform());
+        Double fee2 = total_2 * TradingFeesUtil.getTradeFee(tradePair.getTradePair_2().getTradePlatform());
+        Double fee3 = 0.0;
+        if(tradePair.getTradePair_3() != null) {
+            fee3 = total_3 * TradingFeesUtil.getTradeFee(tradePair.getTradePair_3().getTradePlatform());
+        }
+        Double totalFee = fee1 + fee2 + fee3;
+        profit -= totalFee;
+
         TradeConfigContext.getINSTANCE().addProfit(profit);
+        TradeConfigContext.getINSTANCE().addServiceFee(totalFee);
+
         mockDoTrade(tradePair, tradePair.getTradePair_1(), profit);
         mockDoTrade(tradePair, tradePair.getTradePair_2(), profit);
         mockDoTrade(tradePair, tradePair.getTradePair_3(), profit);
@@ -135,6 +153,9 @@ public class TradeJudgeV3 {
         } else {
             throw new IllegalArgumentException("Illegal trade action " + signalTrade.getTradeAction());
         }
+
+        tradeHistory.setNormalizeFee(tradeHistory.getNormalizePrice() *
+                tradeHistory.getAmount() * TradingFeesUtil.getTradeFee(signalTrade.getTradePlatform()));
         tradeHistory.setAfterAccountSourceAmount(sourceBalance.getFreeAmount());
         tradeHistory.setAfterAccountTargetAmount(targetBalance.getFreeAmount());
         tradeHistory.setAccountName(account.getAccountName());
@@ -358,12 +379,18 @@ public class TradeJudgeV3 {
             return null;
         }
 
-        //TODO 添加手续费的判断，计算每个平台的交易数量
+        //添加手续费的判断，计算每个平台的交易数量
         //手续费的基本扣除：扣除收取到的资产
         //买的数量不动
+        //如果时买，则扣除收取到的币
+        //比如，100元买1个币，实际花了100，买了0.9985个币
+        //如果时卖，则扣除收取到的钱
+        //比如，100元卖1个币，则实际收到99.85元
+        //我们的根本是，保持币的数量不变。宗旨是：如果买，多买点；如果卖，少卖点
+        //所以，卖的数量不动
         Double buyAmount = minAmount;
 
-        //sell时，卖出固定的买的时候实际收到的资产
+        //sell时，卖出固定的买的时候实际收到的资产，少卖一点
         Double sellAmount = minAmount * (1 - TradingFeesUtil.getTradeFee(buySide.getTradePlatform()));
 
         ListingDepth.DepthInfo sellInfo = ListingDepthUtil.getLevelDepthInfo(sellSide.getBuyDepth(), MONITOR_DEPTH_LEVEL);
@@ -392,7 +419,7 @@ public class TradeJudgeV3 {
                 }
             }
         } catch (Exception e) {
-            logger.error("ERROR on balance btc {}", e.getMessage());
+            logger.debug("ERROR on balance btc {}", e.getMessage());
             return null;
         }
 
@@ -428,6 +455,10 @@ public class TradeJudgeV3 {
             ListingDepth.DepthInfo depthInfo = ListingDepthUtil.getLevelDepthInfo(btcFullInfo.getSellDepth(), MONITOR_DEPTH_LEVEL);
             double maxBuyAmount = AccountManager.INSTANCE.getFreeAmount(
                     signalTrade.getTradePlatform(), CoinType.USDT) / depthInfo.getOriPrice();
+
+            //如果要买BTC，就多买一点，因为之前卖其他的币，得到了更多的BTC
+            maxBuyAmount = maxBuyAmount * (1 + TradingFeesUtil.getTradeFee(signalTrade.getTradePlatform()));
+
             if(maxBuyAmount < costTargetCoin) {
                 throw new RuntimeException("Not enough USDT to buy " + costTargetCoin + " " + signalTrade.getTargetCoin());
             }
@@ -441,13 +472,17 @@ public class TradeJudgeV3 {
             ListingDepth.DepthInfo depthInfo = ListingDepthUtil.getLevelDepthInfo(btcFullInfo.getBuyDepth(), MONITOR_DEPTH_LEVEL);
             Double curTargetCoinCount = AccountManager.INSTANCE.getFreeAmount(
                     signalTrade.getTradePlatform(), signalTrade.getTargetCoin());
+
+            //如果要卖BTC，就少卖一点，因为之前卖其他的币，得到了更少的BTC
+            Double maxSellAmount = costTargetCoin * (1 - TradingFeesUtil.getTradeFee(signalTrade.getTradePlatform()));
+
             if(curTargetCoinCount < costTargetCoin) {
                 throw new RuntimeException("Not enough BTC to sell " + costTargetCoin + " " + signalTrade.getTargetCoin());
             }
             btcTrade = makeOneTrade(signalTrade.getTradePlatform(),
                     signalTrade.getTargetCoin(), CoinType.USDT,
                     TradeAction.SELL,
-                    depthInfo.getOriPrice(), costTargetCoin,
+                    depthInfo.getOriPrice(), maxSellAmount,
                     depthInfo.getNormalizePrice());
         }
 

@@ -74,13 +74,14 @@ public class AccountManager {
         Account account = new Account();
         account.setTradePlatform(TradePlatform.BITHUMB);
         account.setBalanceMap(new HashMap<>());
-        account.getBalanceMap().put(CoinType.BTC, new Balance(CoinType.BTC, 1.0, 0.0));
-        account.getBalanceMap().put(CoinType.ETH, new Balance(CoinType.ETH, 10.0, 0.0));
-        account.getBalanceMap().put(CoinType.LTC, new Balance(CoinType.LTC, 100.0, 0.0));
+        account.getBalanceMap().put(CoinType.BTC, new Balance(CoinType.BTC, 0.4, 0.0));
+        account.getBalanceMap().put(CoinType.ETH, new Balance(CoinType.ETH, 4.0, 0.0));
+        account.getBalanceMap().put(CoinType.LTC, new Balance(CoinType.LTC, 20.0, 0.0));
         account.getBalanceMap().put(CoinType.QTUM, new Balance(CoinType.QTUM, 100.0, 0.0));
-        account.getBalanceMap().put(CoinType.EOS, new Balance(CoinType.EOS, 100.0, 0.0));
-        account.getBalanceMap().put(CoinType.BTG, new Balance(CoinType.BTG, 100.0, 0.0));
-        account.getBalanceMap().put(CoinType.KRW, new Balance(CoinType.KRW, 200000.0, 0.0));
+        account.getBalanceMap().put(CoinType.EOS, new Balance(CoinType.EOS, 200.0, 0.0));
+        account.getBalanceMap().put(CoinType.BTG, new Balance(CoinType.BTG, 40.0, 0.0));
+        //2000 usd
+        account.getBalanceMap().put(CoinType.KRW, new Balance(CoinType.KRW, 2189800.0, 0.0));
         return account;
     }
 
@@ -88,13 +89,13 @@ public class AccountManager {
         Account account = new Account();
         account.setTradePlatform(TradePlatform.BINANCE);
         account.setBalanceMap(new HashMap<>());
-        account.getBalanceMap().put(CoinType.BTC, new Balance(CoinType.BTC, 1.0, 0.0));
-        account.getBalanceMap().put(CoinType.ETH, new Balance(CoinType.ETH, 10.0, 0.0));
-        account.getBalanceMap().put(CoinType.LTC, new Balance(CoinType.LTC, 100.0, 0.0));
+        account.getBalanceMap().put(CoinType.BTC, new Balance(CoinType.BTC, 0.4, 0.0));
+        account.getBalanceMap().put(CoinType.ETH, new Balance(CoinType.ETH, 4.0, 0.0));
+        account.getBalanceMap().put(CoinType.LTC, new Balance(CoinType.LTC, 20.0, 0.0));
         account.getBalanceMap().put(CoinType.QTUM, new Balance(CoinType.QTUM, 100.0, 0.0));
-        account.getBalanceMap().put(CoinType.EOS, new Balance(CoinType.EOS, 100.0, 0.0));
-        account.getBalanceMap().put(CoinType.BTG, new Balance(CoinType.BTG, 100.0, 0.0));
-         account.getBalanceMap().put(CoinType.USDT, new Balance(CoinType.USDT, 1000.0, 0.0));
+        account.getBalanceMap().put(CoinType.EOS, new Balance(CoinType.EOS, 200.0, 0.0));
+        account.getBalanceMap().put(CoinType.BTG, new Balance(CoinType.BTG, 40.0, 0.0));
+         account.getBalanceMap().put(CoinType.USDT, new Balance(CoinType.USDT, 2000.0, 0.0));
         return account;
     }
 }

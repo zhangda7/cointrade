@@ -47,8 +47,8 @@ public class TradeHistoryService {
             String sql = "INSERT INTO trade_history (platform, action, coin_type, target_coin_type, price, amount," +
                     "result, account_name, pre_account_source_amount, after_account_source_amount," +
                     "pre_account_target_amount, after_account_target_amount, comment, gmt_created, gmt_modified, " +
-                    "pairId, direction, profit, normalize_price, normalize_fee)\n" +
-                    "VALUES ( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                    "pairId, direction, profit, normalize_price, normalize_fee, trade_ts)\n" +
+                    "VALUES ( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
             preparedStatement = this.connection.prepareStatement(sql);
             preparedStatement.setString(1, tradeHistory.getTradePlatform().name());
             preparedStatement.setString(2, tradeHistory.getTradeAction().name());
@@ -70,6 +70,7 @@ public class TradeHistoryService {
             preparedStatement.setDouble(18, tradeHistory.getProfit());
             preparedStatement.setDouble(19, tradeHistory.getNormalizePrice());
             preparedStatement.setDouble(20, tradeHistory.getNormalizeFee());
+            preparedStatement.setDouble(21, tradeHistory.getTradeTs());
 
             int ret = preparedStatement.executeUpdate();
             return ret;
@@ -112,10 +113,13 @@ public class TradeHistoryService {
         return 0;
     }
 
-    public List<TradeHistory> list() throws SQLException {
+    public List<TradeHistory> listByDate(Long startTs, Long endTs) throws SQLException {
         List<TradeHistory> tradeHistoryList = new ArrayList<>();
-        String selectSQL = "SELECT * FROM trade_history order by id desc limit 400";
+        String selectSQL = "SELECT * FROM trade_history where trade_ts >= ? and trade_ts <= ? order by id desc limit 400";
         PreparedStatement preparedStatement = this.connection.prepareStatement(selectSQL);
+        preparedStatement.setLong(1, startTs);
+        preparedStatement.setLong(2, endTs);
+
 //        preparedStatement.setInt(1, 1001);
         ResultSet rs = preparedStatement.executeQuery();
         while (rs.next()) {
@@ -137,6 +141,7 @@ public class TradeHistoryService {
             tradeHistory.setAfterAccountSourceAmount(rs.getDouble("after_account_source_amount"));
             tradeHistory.setPreAccountTargetAmount(rs.getDouble("pre_account_target_amount"));
             tradeHistory.setAfterAccountTargetAmount(rs.getDouble("after_account_target_amount"));
+            tradeHistory.setTradeTs(rs.getLong("trade_ts"));
             tradeHistory.setNormalizeFee(rs.getDouble("normalize_fee"));
             tradeHistory.setGmtCreated(rs.getString("gmt_created"));
             tradeHistoryList.add(tradeHistory);
@@ -145,6 +150,40 @@ public class TradeHistoryService {
         preparedStatement.close();
         return tradeHistoryList;
     }
+
+//    public List<TradeHistory> list() throws SQLException {
+//        List<TradeHistory> tradeHistoryList = new ArrayList<>();
+//        String selectSQL = "SELECT * FROM trade_history order by id desc limit 400";
+//        PreparedStatement preparedStatement = this.connection.prepareStatement(selectSQL);
+////        preparedStatement.setInt(1, 1001);
+//        ResultSet rs = preparedStatement.executeQuery();
+//        while (rs.next()) {
+//            TradeHistory tradeHistory = new TradeHistory();
+//            tradeHistory.setId(rs.getLong("id"));
+//            tradeHistory.setPairId(rs.getString("pairId"));
+//            tradeHistory.setDirection(rs.getString("direction"));
+//            tradeHistory.setProfit(rs.getDouble("profit"));
+//            tradeHistory.setTradePlatform(TradePlatform.valueOf(rs.getString("platform")));
+//            tradeHistory.setTradeAction(TradeAction.valueOf(rs.getString("action")));
+//            tradeHistory.setCoinType(CoinType.valueOf(rs.getString("coin_type")));
+//            tradeHistory.setTargetCoinType(CoinType.valueOf(rs.getString("target_coin_type")));
+//            tradeHistory.setPrice(rs.getDouble("price"));
+//            tradeHistory.setNormalizePrice(rs.getDouble("normalize_price"));
+//            tradeHistory.setAmount(rs.getDouble("amount"));
+//            tradeHistory.setResult(TradeResult.valueOf(rs.getString("result")));
+//            tradeHistory.setAccountName(rs.getString("account_name"));
+//            tradeHistory.setPreAccountSourceAmount(rs.getDouble("pre_account_source_amount"));
+//            tradeHistory.setAfterAccountSourceAmount(rs.getDouble("after_account_source_amount"));
+//            tradeHistory.setPreAccountTargetAmount(rs.getDouble("pre_account_target_amount"));
+//            tradeHistory.setAfterAccountTargetAmount(rs.getDouble("after_account_target_amount"));
+//            tradeHistory.setNormalizeFee(rs.getDouble("normalize_fee"));
+//            tradeHistory.setGmtCreated(rs.getString("gmt_created"));
+//            tradeHistoryList.add(tradeHistory);
+//        }
+//        rs.close();
+//        preparedStatement.close();
+//        return tradeHistoryList;
+//    }
 
     private void createTradeTable() {
         Connection c = null;
@@ -174,6 +213,7 @@ public class TradeHistoryService {
                     "after_account_target_amount REAL, " +
                     "comment REAL, " +
                     "normalize_fee REAL, " +
+                    "trade_ts REAL, " +
                     "gmt_created TEXT, gmt_modified TEXT)";
             stmt.executeUpdate(sql);
             stmt.close();

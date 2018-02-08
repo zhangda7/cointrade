@@ -46,6 +46,8 @@ public class TradeHistory {
 
     private String comment;
 
+    private Long tradeTs;
+
     private String gmtCreated;
 
     private String gmtModified;

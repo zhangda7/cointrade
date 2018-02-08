@@ -22,6 +22,8 @@ public class OrderBookHistory {
      */
     private double averageProfit;
 
+    private double totalFee;
+
     private long updateTs;
 
 }

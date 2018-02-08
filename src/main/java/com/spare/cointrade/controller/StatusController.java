@@ -83,6 +83,7 @@ public class StatusController {
             JSONObject history = new JSONObject();
             history.put("coinType", orderBookHistory.getCoinType());
             history.put("totalProfit", orderBookHistory.getTotalProfit());
+            history.put("totalFee", orderBookHistory.getTotalFee());
             history.put("totalAmount", orderBookHistory.getTotalAmount());
             history.put("averageProfit", orderBookHistory.getAverageProfit());
             history.put("updateDate", sdf.format(new Date(orderBookHistory.getUpdateTs())));
@@ -109,11 +110,15 @@ public class StatusController {
     public String listingTradeHistory(@RequestParam(value = "tradePlatform", required = false) String platform,
                                       @RequestParam(value = "page", required = false) Integer page,
                                       @RequestParam(value = "limit", required = false) Integer limit,
-                                      @RequestParam(value = "direction", required = false) String direction) {
+                                      @RequestParam(value = "direction", required = false) String direction,
+                                      @RequestParam(value = "startTime", required = false) String startTime,
+                                      @RequestParam(value = "endTime", required = false) String endTime) {
         RestfulPage restfulPage = new RestfulPage();
         restfulPage.setCode(CODE_SUCCESS);
+        long endTs = System.currentTimeMillis();
+        long startTs = endTs - 24 * 3600 * 1000;
         try {
-            List<TradeHistory> tradeHistoryList = TradeHistoryService.INSTANCE.list();
+            List<TradeHistory> tradeHistoryList = TradeHistoryService.INSTANCE.listByDate(startTs, endTs);
 //            if(platform != null && ! platform.equalsIgnoreCase("UNDEFINED")) {
             List<TradeHistory> newList = new ArrayList<>();
             int skip = 0;

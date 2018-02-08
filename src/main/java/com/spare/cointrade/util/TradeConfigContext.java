@@ -105,7 +105,7 @@ public class TradeConfigContext {
      * @param normalizeOriPrice 仅仅是该币归一化到同一单位的差值。并非归一化到10000的差值。可正可负
      * @param amount
      */
-    public void updateOrderBookHistory(CoinType coinType, Double normalizeOriPrice, Double amount) {
+    public void updateOrderBookHistory(CoinType coinType, Double normalizeOriPrice, Double amount, Double totalFee) {
         if(! orderBookHistoryMap.containsKey(coinType)) {
             OrderBookHistory orderBookHistory = new OrderBookHistory();
             orderBookHistory.setCoinType(coinType);
@@ -113,7 +113,8 @@ public class TradeConfigContext {
         }
         OrderBookHistory orderBookHistory = orderBookHistoryMap.get(coinType);
         orderBookHistory.setTotalAmount(orderBookHistory.getTotalAmount() + amount);
-        orderBookHistory.setTotalProfit(orderBookHistory.getTotalProfit() + normalizeOriPrice * amount);
+        orderBookHistory.setTotalFee(orderBookHistory.getTotalFee() + totalFee);
+        orderBookHistory.setTotalProfit(orderBookHistory.getTotalProfit() + normalizeOriPrice * amount - totalFee);
         orderBookHistory.setAverageProfit(orderBookHistory.getTotalProfit() / orderBookHistory.getTotalAmount());
         orderBookHistory.setUpdateTs(System.currentTimeMillis());
     }

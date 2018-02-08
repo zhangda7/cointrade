@@ -10,7 +10,6 @@ import com.spare.cointrade.model.*;
 import com.spare.cointrade.service.TradeHistoryService;
 import com.spare.cointrade.account.AccountManager;
 import com.spare.cointrade.util.*;
-import org.jcp.xml.dsig.internal.dom.DOMUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,6 +42,8 @@ public class TradeJudgeV3 {
     private static final Double REVERSE_AVERAGE_NORMALIZE_PERCENT = 0.95;
 
     private static final Double REVERSE_TOTAL_NORLAIZE_PERCENT = 0.3;
+
+    private static final Double MAX_PRICE_DELTA_RATIO = 0.0004;
 
     /**
      * 总是监控深度信息的第二级，即买2，卖2
@@ -100,10 +101,10 @@ public class TradeJudgeV3 {
         double preAverageProfit = orderBookHistory.getAverageProfit();
         if(tradePair.getTradeDirection().equals(TradeDirection.FORWARD)) {
             TradeConfigContext.getINSTANCE().updateOrderBookHistory(tradePair.getTradePair_1().getSourceCoin(),
-                    tradePair.getNormalizePriceDelta(), tradePair.getTradePair_1().getAmount());
+                    tradePair.getNormalizePriceDelta(), tradePair.getTradePair_1().getAmount(), totalFee);
         } else if(tradePair.getTradeDirection().equals(TradeDirection.REVERSE)) {
             TradeConfigContext.getINSTANCE().updateOrderBookHistory(tradePair.getTradePair_1().getSourceCoin(),
-                    tradePair.getNormalizePriceDelta() * -1, tradePair.getTradePair_1().getAmount());
+                    tradePair.getNormalizePriceDelta() * -1, tradePair.getTradePair_1().getAmount(), totalFee);
         } else {
             throw new IllegalArgumentException("Trade direction is wrong:" + tradePair.getTradeDirection());
         }
@@ -132,7 +133,7 @@ public class TradeJudgeV3 {
         Balance sourceBalance = account.getBalanceMap().get(signalTrade.getSourceCoin());
         Balance targetBalance;
         if(signalTrade.getTargetCoin().equals(CoinType.KRW) ||
-                signalTrade.getTargetCoin().equals(CoinType.CNY)) {
+                signalTrade.getTargetCoin().equals(CoinType.USDT)) {
             targetBalance = account.getMoneyBalance();
             tradeHistory.setNormalizePrice(ExchangeContext.normalizeToUSD(signalTrade.getTargetCoin(), signalTrade.getPrice()));
         } else {
@@ -145,11 +146,15 @@ public class TradeJudgeV3 {
         tradeHistory.setPreAccountSourceAmount(sourceBalance.getFreeAmount());
         tradeHistory.setPreAccountTargetAmount(targetBalance.getFreeAmount());
         if(signalTrade.getTradeAction().equals(TradeAction.BUY)) {
-            sourceBalance.setFreeAmount(sourceBalance.getFreeAmount() + signalTrade.getAmount());
+            //买的话，得到的币变少
+            sourceBalance.setFreeAmount((sourceBalance.getFreeAmount() + signalTrade.getAmount()) *
+                    TradingFeesUtil.getTradeFee(signalTrade.getTradePlatform()));
             targetBalance.setFreeAmount(targetBalance.getFreeAmount() - signalTrade.getAmount() * signalTrade.getPrice());
         } else if(signalTrade.getTradeAction().equals(TradeAction.SELL)) {
+            //买的话，得到的币变少
             sourceBalance.setFreeAmount(sourceBalance.getFreeAmount() - signalTrade.getAmount());
-            targetBalance.setFreeAmount(targetBalance.getFreeAmount() + signalTrade.getAmount() * signalTrade.getPrice());
+            targetBalance.setFreeAmount((targetBalance.getFreeAmount() + signalTrade.getAmount() * signalTrade.getPrice()) *
+                    TradingFeesUtil.getTradeFee(signalTrade.getTradePlatform()));
         } else {
             throw new IllegalArgumentException("Illegal trade action " + signalTrade.getTradeAction());
         }
@@ -159,6 +164,7 @@ public class TradeJudgeV3 {
         tradeHistory.setAfterAccountSourceAmount(sourceBalance.getFreeAmount());
         tradeHistory.setAfterAccountTargetAmount(targetBalance.getFreeAmount());
         tradeHistory.setAccountName(account.getAccountName());
+        tradeHistory.setTradeTs(System.currentTimeMillis());
         logger.info("Prepare insert tradeHistory {}", JSON.toJSONString(tradeHistory));
         TradeHistoryService.INSTANCE.insert(tradeHistory);
 
@@ -378,7 +384,6 @@ public class TradeJudgeV3 {
                     sellSide.getTradePlatform(), sellSide.getSourceCoinType(), sellSide.getTargetCoinType());
             return null;
         }
-
         //添加手续费的判断，计算每个平台的交易数量
         //手续费的基本扣除：扣除收取到的资产
         //买的数量不动
@@ -394,13 +399,20 @@ public class TradeJudgeV3 {
         Double sellAmount = minAmount * (1 - TradingFeesUtil.getTradeFee(buySide.getTradePlatform()));
 
         ListingDepth.DepthInfo sellInfo = ListingDepthUtil.getLevelDepthInfo(sellSide.getBuyDepth(), MONITOR_DEPTH_LEVEL);
+        ListingDepth.DepthInfo buyInfo = ListingDepthUtil.getLevelDepthInfo(buySide.getSellDepth(), MONITOR_DEPTH_LEVEL);
+
+        if(Math.abs(sellInfo.getOriPrice() - buyInfo.getOriPrice()) <
+                Math.max(sellInfo.getOriPrice(), buyInfo.getOriPrice()) * MAX_PRICE_DELTA_RATIO) {
+            //如果差价比手续费还低的话，直接跳过了
+            return null;
+        }
+
         tradePair.setTradePair_1(makeOneTrade(sellSide.getTradePlatform(),
                 orderBookEntry.getCoinType(), sellSide.getTargetCoinType(), // 应该为buySide.targetCoinType
                 TradeAction.SELL,
                 sellInfo.getOriPrice(), sellAmount,
                 sellInfo.getNormalizePrice()));
 
-        ListingDepth.DepthInfo buyInfo = ListingDepthUtil.getLevelDepthInfo(buySide.getSellDepth(), MONITOR_DEPTH_LEVEL);
         tradePair.setTradePair_2(makeOneTrade(buySide.getTradePlatform(),
                 orderBookEntry.getCoinType(), buySide.getTargetCoinType(),
                 TradeAction.BUY,

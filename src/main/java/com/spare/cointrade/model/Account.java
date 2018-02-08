@@ -25,7 +25,7 @@ public class Account {
         if(this.tradePlatform.equals(TradePlatform.BITHUMB)) {
             return this.balanceMap.get(CoinType.KRW);
         } else if(this.tradePlatform.equals(TradePlatform.BINANCE)) {
-            return this.balanceMap.get(CoinType.CNY);
+            return this.balanceMap.get(CoinType.USDT);
         }
         return null;
     }

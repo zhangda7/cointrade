@@ -31,6 +31,8 @@ public class BithumbSimpleSyncer implements Runnable {
 
     private ActorSelection listingInfoMonitor;
 
+    private ActorSelection depthInfoHistoryMonitor;
+
     private Api_Client apiClient;
     @PostConstruct
     public void start() {
@@ -42,6 +44,8 @@ public class BithumbSimpleSyncer implements Runnable {
                 "api secret key");
         listingInfoMonitor = AkkaContext.getSystem().actorSelection(
                 AkkaContext.getFullActorName(CoinTradeConstants.ACTOR_LISTING_INFO_MONITOR));
+        depthInfoHistoryMonitor = AkkaContext.getSystem().actorSelection(
+                AkkaContext.getFullActorName(CoinTradeConstants.ACTOR_DEPTH_INFO_HISTORY_MONITOR));
         scheduledExecutorService = Executors.newScheduledThreadPool(1, new DefaultThreadFactory("BithumbSimpleSyncer"));
         scheduledExecutorService.scheduleWithFixedDelay(this, 5, 2, TimeUnit.SECONDS);
     }
@@ -74,6 +78,7 @@ public class BithumbSimpleSyncer implements Runnable {
         ListingFullInfo listingFullInfo = convert(orderBookInfo);
         if(listingFullInfo != null) {
             listingInfoMonitor.tell(listingFullInfo, ActorRef.noSender());
+            depthInfoHistoryMonitor.tell(listingFullInfo, ActorRef.noSender());
         }
     }
 

@@ -35,6 +35,8 @@ public class BinanceSimpleSyncer implements Runnable {
 
     private ActorSelection listingInfoMonitor;
 
+    private ActorSelection depthInfoHistoryMonitor;
+
     private BinanceApiRestClient client;
 
     public BinanceSimpleSyncer() {
@@ -52,6 +54,9 @@ public class BinanceSimpleSyncer implements Runnable {
         }
         listingInfoMonitor = AkkaContext.getSystem().actorSelection(
                 AkkaContext.getFullActorName(CoinTradeConstants.ACTOR_LISTING_INFO_MONITOR));
+
+        depthInfoHistoryMonitor = AkkaContext.getSystem().actorSelection(
+                AkkaContext.getFullActorName(CoinTradeConstants.ACTOR_DEPTH_INFO_HISTORY_MONITOR));
         scheduledExecutorService = Executors.newScheduledThreadPool(1, new DefaultThreadFactory("BinanceSimpleSyncer"));
         scheduledExecutorService.scheduleWithFixedDelay(this, 5, 2, TimeUnit.SECONDS);
 
@@ -100,6 +105,7 @@ public class BinanceSimpleSyncer implements Runnable {
             ListingFullInfo listingFullInfo = convert(orderBook, sourceCoin, targetCoin);
             if(listingFullInfo != null) {
                 listingInfoMonitor.tell(listingFullInfo, ActorRef.noSender());
+                depthInfoHistoryMonitor.tell(listingFullInfo, ActorRef.noSender());
             }
         } catch (Exception e) {
             logger.error("ERROR on syncOneCoin {} -> {}", sourceCoin, targetCoin, e);

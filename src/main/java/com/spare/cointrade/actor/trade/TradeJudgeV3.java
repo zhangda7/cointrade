@@ -103,7 +103,7 @@ public class TradeJudgeV3 {
         double preTotalProfit = orderBookHistory.getTotalProfit();
         double preAmount = orderBookHistory.getTotalAmount();
         double preAverageProfit = orderBookHistory.getAverageProfit();
-        
+
         TradeConfigContext.getINSTANCE().updateOrderBookHistory(tradePair.getTradePair_1().getSourceCoin(),
                     profit, tradePair.getTradePair_1().getAmount(), totalFee);
 

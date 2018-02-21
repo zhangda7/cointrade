@@ -48,7 +48,7 @@ public class TradeConfigContext {
         maxCoinAmountMap.put(CoinType.LTC, 0.1);
         maxCoinAmountMap.put(CoinType.QTUM, 0.5);
         maxCoinAmountMap.put(CoinType.EOS, 1.0);
-        maxCoinAmountMap.put(CoinType.BTC, 0.1);
+        maxCoinAmountMap.put(CoinType.BTG, 0.1);
 
     }
 
@@ -99,13 +99,33 @@ public class TradeConfigContext {
         return orderBookHistory;
     }
 
+//    /**
+//     * 更新该币种的历史成交信息
+//     * @param coinType
+//     * @param normalizeOriPrice 仅仅是该币归一化到同一单位的差值。并非归一化到10000的差值。可正可负
+//     * @param amount
+//     */
+//    public void updateOrderBookHistory(CoinType coinType, Double normalizeOriPrice, Double amount, Double totalFee) {
+//        if(! orderBookHistoryMap.containsKey(coinType)) {
+//            OrderBookHistory orderBookHistory = new OrderBookHistory();
+//            orderBookHistory.setCoinType(coinType);
+//            orderBookHistoryMap.put(coinType, new OrderBookHistory());
+//        }
+//        OrderBookHistory orderBookHistory = orderBookHistoryMap.get(coinType);
+//        orderBookHistory.setTotalAmount(orderBookHistory.getTotalAmount() + amount);
+//        orderBookHistory.setTotalFee(orderBookHistory.getTotalFee() + totalFee);
+//        orderBookHistory.setTotalProfit(orderBookHistory.getTotalProfit() + normalizeOriPrice * amount - totalFee);
+//        orderBookHistory.setAverageProfit(orderBookHistory.getTotalProfit() / orderBookHistory.getTotalAmount());
+//        orderBookHistory.setUpdateTs(System.currentTimeMillis());
+//    }
+
     /**
      * 更新该币种的历史成交信息
      * @param coinType
-     * @param normalizeOriPrice 仅仅是该币归一化到同一单位的差值。并非归一化到10000的差值。可正可负
+     * @param normalizeProfit 仅是该币的交易净盈利，已扣除手续费
      * @param amount
      */
-    public void updateOrderBookHistory(CoinType coinType, Double normalizeOriPrice, Double amount, Double totalFee) {
+    public void updateOrderBookHistory(CoinType coinType, Double normalizeProfit, Double amount, Double totalFee) {
         if(! orderBookHistoryMap.containsKey(coinType)) {
             OrderBookHistory orderBookHistory = new OrderBookHistory();
             orderBookHistory.setCoinType(coinType);
@@ -114,7 +134,7 @@ public class TradeConfigContext {
         OrderBookHistory orderBookHistory = orderBookHistoryMap.get(coinType);
         orderBookHistory.setTotalAmount(orderBookHistory.getTotalAmount() + amount);
         orderBookHistory.setTotalFee(orderBookHistory.getTotalFee() + totalFee);
-        orderBookHistory.setTotalProfit(orderBookHistory.getTotalProfit() + normalizeOriPrice * amount - totalFee);
+        orderBookHistory.setTotalProfit(orderBookHistory.getTotalProfit() + normalizeProfit);
         orderBookHistory.setAverageProfit(orderBookHistory.getTotalProfit() / orderBookHistory.getTotalAmount());
         orderBookHistory.setUpdateTs(System.currentTimeMillis());
     }

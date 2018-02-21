@@ -53,9 +53,13 @@ public class TradeJudgeV3 {
     public TradeJudgeV3() {
         this.tradeStateSyncer = AkkaContext.getSystem().actorSelection(
                 AkkaContext.getFullActorName(CoinTradeConstants.ACTOR_TRADE_STATE_SYNCER));
-        minCoinTradeAmountMap.put(CoinType.BTC, 0.0001);
-        minCoinTradeAmountMap.put(CoinType.LTC, 0.01);
-        minCoinTradeAmountMap.put(CoinType.ETH, 0.01);
+        minCoinTradeAmountMap.put(CoinType.BTC, 0.01);
+        minCoinTradeAmountMap.put(CoinType.LTC, 0.1);
+        minCoinTradeAmountMap.put(CoinType.ETH, 0.1);
+        minCoinTradeAmountMap.put(CoinType.QTUM, 0.1);
+        minCoinTradeAmountMap.put(CoinType.EOS, 1.0);
+        minCoinTradeAmountMap.put(CoinType.BTG, 0.1);
+
     }
 
     private static final Double DECREASE_PERCENT = 0.8;
@@ -99,15 +103,10 @@ public class TradeJudgeV3 {
         double preTotalProfit = orderBookHistory.getTotalProfit();
         double preAmount = orderBookHistory.getTotalAmount();
         double preAverageProfit = orderBookHistory.getAverageProfit();
-        if(tradePair.getTradeDirection().equals(TradeDirection.FORWARD)) {
-            TradeConfigContext.getINSTANCE().updateOrderBookHistory(tradePair.getTradePair_1().getSourceCoin(),
-                    tradePair.getNormalizePriceDelta(), tradePair.getTradePair_1().getAmount(), totalFee);
-        } else if(tradePair.getTradeDirection().equals(TradeDirection.REVERSE)) {
-            TradeConfigContext.getINSTANCE().updateOrderBookHistory(tradePair.getTradePair_1().getSourceCoin(),
-                    tradePair.getNormalizePriceDelta() * -1, tradePair.getTradePair_1().getAmount(), totalFee);
-        } else {
-            throw new IllegalArgumentException("Trade direction is wrong:" + tradePair.getTradeDirection());
-        }
+        
+        TradeConfigContext.getINSTANCE().updateOrderBookHistory(tradePair.getTradePair_1().getSourceCoin(),
+                    profit, tradePair.getTradePair_1().getAmount(), totalFee);
+
         logger.info("Normalise profit change [{} {} {}] -> [{} {} {}]", preTotalProfit, preAmount, preAverageProfit,
                 orderBookHistory.getTotalProfit(), orderBookHistory.getTotalAmount(), orderBookHistory.getAverageProfit());
         canTrade = false;
@@ -145,16 +144,17 @@ public class TradeJudgeV3 {
         }
         tradeHistory.setPreAccountSourceAmount(sourceBalance.getFreeAmount());
         tradeHistory.setPreAccountTargetAmount(targetBalance.getFreeAmount());
+        double decreaseFee = 1 - TradingFeesUtil.getTradeFee(signalTrade.getTradePlatform());
         if(signalTrade.getTradeAction().equals(TradeAction.BUY)) {
             //买的话，得到的币变少
-            sourceBalance.setFreeAmount((sourceBalance.getFreeAmount() + signalTrade.getAmount()) *
-                    TradingFeesUtil.getTradeFee(signalTrade.getTradePlatform()));
+            sourceBalance.setFreeAmount(sourceBalance.getFreeAmount() + (signalTrade.getAmount() *
+                    decreaseFee));
             targetBalance.setFreeAmount(targetBalance.getFreeAmount() - signalTrade.getAmount() * signalTrade.getPrice());
         } else if(signalTrade.getTradeAction().equals(TradeAction.SELL)) {
-            //买的话，得到的币变少
+            //卖的话，得到的钱变少
             sourceBalance.setFreeAmount(sourceBalance.getFreeAmount() - signalTrade.getAmount());
-            targetBalance.setFreeAmount((targetBalance.getFreeAmount() + signalTrade.getAmount() * signalTrade.getPrice()) *
-                    TradingFeesUtil.getTradeFee(signalTrade.getTradePlatform()));
+            targetBalance.setFreeAmount(targetBalance.getFreeAmount() +
+                    (signalTrade.getAmount() * signalTrade.getPrice()) * decreaseFee);
         } else {
             throw new IllegalArgumentException("Illegal trade action " + signalTrade.getTradeAction());
         }
@@ -215,14 +215,14 @@ public class TradeJudgeV3 {
      * @return
      */
     private List<TradePair> findNormalTradeChance() {
-//        double minTotalAmount = Math.min(maxEntry.getAmount() * maxEntry.getNormaliseDelta(), minEntry.getNormaliseDelta() * minEntry.getAmount());
+//        double minTotalAmount = Math.min(maxEntry.getAmount() * maxEntry.getNormaliseTo10KDelta(), minEntry.getNormaliseTo10KDelta() * minEntry.getAmount());
         List<TradePair> tradePairList = new ArrayList<>();
         List<OrderBookEntry> entryList = new ArrayList<>();
         entryList.addAll(chanceTradeMap.values());
         Collections.sort(entryList, new Comparator<OrderBookEntry>() {
             @Override
             public int compare(OrderBookEntry o1, OrderBookEntry o2) {
-                return (int) (o2.getNormaliseDelta() - o1.getNormaliseDelta());
+                return (int) (o2.getNormaliseTo10KDelta() - o1.getNormaliseTo10KDelta());
             }
         });
         for(OrderBookEntry orderBookEntry : entryList) {
@@ -248,22 +248,39 @@ public class TradeJudgeV3 {
         Collections.sort(entryList, (o1, o2) -> {
 //            @Override
 //            public int compare(OrderBookEntry o1, OrderBookEntry o2) {
-                return (int) (o1.getNormaliseDelta() - o2.getNormaliseDelta());
+                return (int) (o1.getNormaliseTo10KDelta() - o2.getNormaliseTo10KDelta());
 //            }
         });
         for(OrderBookEntry orderBookEntry : entryList) {
 //            OrderBookHistory orderBookHistory = TradeConfigContext.getINSTANCE().getOrderBookHistory(orderBookEntry.getCoinType());
-//            if(Math.abs(orderBookEntry.getNormaliseDelta()) > orderBookHistory.getAverageProfit() * REVERSE_AVERAGE_NORMALIZE_PERCENT) {
+//            if(Math.abs(orderBookEntry.getNormaliseTo10KDelta()) > orderBookHistory.getAverageProfit() * REVERSE_AVERAGE_NORMALIZE_PERCENT) {
 //                continue;
 //            }
+            double normaliseDelta = Math.abs(orderBookEntry.getNormalisePrice1() - orderBookEntry.getNormalisePrice2());
+
             for(Map.Entry<CoinType,OrderBookHistory> entry : TradeConfigContext.getINSTANCE().getOrderBookHistoryMap().entrySet()) {
                 OrderBookHistory orderBookHistory = entry.getValue();
-                if(Math.abs(orderBookEntry.getNormaliseDelta()) > orderBookHistory.getAverageProfit() * REVERSE_AVERAGE_NORMALIZE_PERCENT) {
+
+                //暂时限定至同一个币种的反向交易
+                if(! orderBookEntry.getCoinType().equals(orderBookEntry.getCoinType())) {
                     continue;
                 }
+
+                //同一个平台的，也不能进行逆向交易
+                if(orderBookEntry.getPlatform1().equals(orderBookEntry.getPlatform2())) {
+                    continue;
+                }
+
+                if(normaliseDelta > orderBookHistory.getAverageProfit() * REVERSE_AVERAGE_NORMALIZE_PERCENT) {
+                    continue;
+                }
+
+//                if(Math.abs(orderBookEntry.getNormaliseTo10KDelta()) > orderBookHistory.getAverageProfit() * REVERSE_AVERAGE_NORMALIZE_PERCENT) {
+//                    continue;
+//                }
                 //TODO 再这里增加更详细的判断 how?
                 tradeChanceLogger.info("Can do reverse trade, cur delta {}, target average profit {}",
-                        orderBookEntry.getNormaliseDelta(), orderBookHistory.getAverageProfit(), JSON.toJSONString(orderBookEntry));
+                        orderBookEntry.getNormaliseTo10KDelta(), orderBookHistory.getAverageProfit(), JSON.toJSONString(orderBookEntry));
                 TradePair maxDeltaPair = createReverseTradePair(orderBookEntry);
                 if(maxDeltaPair == null) {
                     continue;
@@ -344,7 +361,7 @@ public class TradeJudgeV3 {
                                        OrderBookEntry orderBookEntry, TradeDirection tradeDirection) {
         TradePair tradePair = new TradePair();
         tradePair.setTradeDirection(tradeDirection);
-        tradePair.setNormalizePriceDelta(orderBookEntry.getNormaliseDelta());
+        tradePair.setNormalizePriceDelta(orderBookEntry.getNormaliseTo10KDelta());
         double maxSellAmount = Math.min(ListingDepthUtil.getLevelDepthInfo(sellSide.getBuyDepth(), MONITOR_DEPTH_LEVEL).getAmount(),
                 AccountManager.INSTANCE.getFreeAmount(sellSide.getTradePlatform(), orderBookEntry.getCoinType()));
 
@@ -384,6 +401,10 @@ public class TradeJudgeV3 {
                     sellSide.getTradePlatform(), sellSide.getSourceCoinType(), sellSide.getTargetCoinType());
             return null;
         }
+
+        //上面的min trade amount有2个作用，1个是交易限制，1个是实际交易的数量限制
+        minAmount = coinMinTradeAmount;
+
         //添加手续费的判断，计算每个平台的交易数量
         //手续费的基本扣除：扣除收取到的资产
         //买的数量不动
@@ -587,6 +608,7 @@ public class TradeJudgeV3 {
      */
     private void updateTradeChanceMap() {
 
+        Map<String, OrderBookEntry> tmpMap = new HashMap<>();
         for (CoinType coinType : ExchangeContext.toCheckedCoin) {
             Map<String, ListingFullInfo> fullInfoMap = new HashMap<>();
             for (Map.Entry<String, ListingFullInfo> entry : ListingInfoMonitor.listingFullInfoMap.entrySet()) {
@@ -600,8 +622,11 @@ public class TradeJudgeV3 {
             if(orderBookEntryMap == null) {
                 continue;
             }
-            chanceTradeMap.putAll(orderBookEntryMap);
+//            chanceTradeMap.putAll(orderBookEntryMap);
+            tmpMap.putAll(orderBookEntryMap);
         }
+        chanceTradeMap.clear();
+        chanceTradeMap.putAll(tmpMap);
     }
 
     /**
@@ -660,14 +685,14 @@ public class TradeJudgeV3 {
             setDetailCoin(orderBookEntry, fullInfo1, fullInfo2);
             orderBookEntry.setNormalisePrice1(fullSellInfo_1.getNormalizePrice());
             orderBookEntry.setNormalisePrice2(fullSellInfo_2.getNormalizePrice());
-            orderBookEntry.setNormaliseDelta(10000 /
+            orderBookEntry.setNormaliseTo10KDelta(10000 /
                     fullSellInfo_2.getNormalizePrice() *
                     fullSellInfo_1.getNormalizePrice() - 10000);
         } else {
             setDetailCoin(orderBookEntry, fullInfo2, fullInfo1);
             orderBookEntry.setNormalisePrice1(fullSellInfo_2.getNormalizePrice());
             orderBookEntry.setNormalisePrice2(fullSellInfo_1.getNormalizePrice());
-            orderBookEntry.setNormaliseDelta(10000 /
+            orderBookEntry.setNormaliseTo10KDelta(10000 /
                     fullSellInfo_1.getNormalizePrice() *
                     fullSellInfo_2.getNormalizePrice() - 10000);
         }

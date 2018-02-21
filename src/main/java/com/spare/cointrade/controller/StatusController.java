@@ -9,6 +9,7 @@ import com.spare.cointrade.actor.trade.TradeJudgeV2;
 import com.spare.cointrade.actor.trade.TradeJudgeV3;
 import com.spare.cointrade.model.*;
 import com.spare.cointrade.service.TradeHistoryService;
+import com.spare.cointrade.trade.okcoin.StringUtil;
 import com.spare.cointrade.util.TradeConfigContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,11 +19,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.TreeMap;
+import java.util.*;
 
 /**
  * Created by dada on 2017/7/16.
@@ -112,13 +111,34 @@ public class StatusController {
                                       @RequestParam(value = "limit", required = false) Integer limit,
                                       @RequestParam(value = "direction", required = false) String direction,
                                       @RequestParam(value = "startTime", required = false) String startTime,
-                                      @RequestParam(value = "endTime", required = false) String endTime) {
+                                      @RequestParam(value = "endTime", required = false) String endTime) throws ParseException {
         RestfulPage restfulPage = new RestfulPage();
         restfulPage.setCode(CODE_SUCCESS);
         long endTs = System.currentTimeMillis();
         long startTs = endTs - 24 * 3600 * 1000;
+        if(! (StringUtils.isEmpty(startTime) || StringUtils.isEmpty(endTime))) {
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+            Date startDate = sdf.parse(startTime);
+            Date endDate = sdf.parse(endTime);
+            startTs = startDate.getTime();
+            endTs = endDate.getTime();
+            logger.info("Receive time query [{} {}] [{} {}]", startTime, startDate, endTime, endDate);
+        }
         try {
             List<TradeHistory> tradeHistoryList = TradeHistoryService.INSTANCE.listByDate(startTs, endTs);
+            Double totalProfit = 0.0;
+            Double totalFee = 0.0;
+            Set<String> handledPaidId = new HashSet<>();
+            Integer tradeCount = 0;
+            for (TradeHistory tradeHistory : tradeHistoryList) {
+                totalFee += tradeHistory.getNormalizeFee();
+                if(handledPaidId.contains(tradeHistory.getPairId())) {
+                    continue;
+                }
+                tradeCount++;
+                totalProfit += tradeHistory.getProfit();
+                handledPaidId.add(tradeHistory.getPairId());
+            }
 //            if(platform != null && ! platform.equalsIgnoreCase("UNDEFINED")) {
             List<TradeHistory> newList = new ArrayList<>();
             int skip = 0;
@@ -150,8 +170,19 @@ public class StatusController {
                 newList.add(tradeHistory);
             }
             restfulPage.setCount(tradeHistoryList.size());
-            restfulPage.setData(JSON.toJSONString(newList));
+//            restfulPage.setData(JSON.toJSONString(newList));
 //            }
+            JSONObject data = new JSONObject();
+            data.put("tableData", JSON.toJSONString(newList));
+
+            JSONObject stat = new JSONObject();
+            stat.put("totalProfit", totalProfit);
+            stat.put("totalFee", totalFee);
+            stat.put("totalCount", tradeCount);
+
+            data.put("stat", stat);
+            restfulPage.setData(JSON.toJSONString(data));
+
             return JSON.toJSONString(restfulPage);
         } catch (Exception e) {
             logger.error("ERROR ", e);

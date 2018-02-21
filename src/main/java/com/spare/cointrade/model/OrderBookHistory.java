@@ -2,6 +2,9 @@ package com.spare.cointrade.model;
 
 import lombok.Data;
 
+/**
+ * 存放所有的交易历史
+ */
 @Data
 public class OrderBookHistory {
 

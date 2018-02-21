@@ -44,7 +44,7 @@ public class OrderBookEntry {
     /**
      * 归一化到 1 万元的差价
      */
-    private Double normaliseDelta;
+    private Double normaliseTo10KDelta;
 
     public String toKey() {
         return coinType + "-" +

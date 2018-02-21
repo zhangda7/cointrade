@@ -21,7 +21,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * 使用提现平衡两边币值的monitor
  * 判断2边现有的币的数目，如果出现了币的数量完全偏到一边的情况，则进行2边的提现
  */
-@Component
+//@Component
 public class BalanceWithDrawMonitor implements Runnable {
 
     private static Logger logger = LoggerFactory.getLogger(BalanceWithDrawMonitor.class);
@@ -30,7 +30,7 @@ public class BalanceWithDrawMonitor implements Runnable {
 
     private static ScheduledExecutorService scheduledExecutorService;
 
-    @PostConstruct
+//    @PostConstruct
     private void start() {
         if(! started.compareAndSet(false, true)) {
             logger.error("BalanceWithDrawMonitor has started, just return");

@@ -8,7 +8,9 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.sql.*;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
 public class DepthInfoHistoryService {
 
@@ -74,43 +76,38 @@ public class DepthInfoHistoryService {
         return 0;
     }
 
-//    public List<TradeHistory> listByDate(Long startTs, Long endTs) throws SQLException {
-//        List<TradeHistory> tradeHistoryList = new ArrayList<>();
-//        String selectSQL = "SELECT * FROM trade_history where trade_ts >= ? and trade_ts <= ? order by id desc limit 400";
-//        PreparedStatement preparedStatement = this.connection.prepareStatement(selectSQL);
-//        preparedStatement.setLong(1, startTs);
-//        preparedStatement.setLong(2, endTs);
-//
-////        preparedStatement.setInt(1, 1001);
-//        ResultSet rs = preparedStatement.executeQuery();
-//        while (rs.next()) {
-//            TradeHistory tradeHistory = new TradeHistory();
-//            tradeHistory.setId(rs.getLong("id"));
-//            tradeHistory.setPairId(rs.getString("pairId"));
-//            tradeHistory.setDirection(rs.getString("direction"));
-//            tradeHistory.setProfit(rs.getDouble("profit"));
-//            tradeHistory.setTradePlatform(TradePlatform.valueOf(rs.getString("platform")));
-//            tradeHistory.setTradeAction(TradeAction.valueOf(rs.getString("action")));
-//            tradeHistory.setCoinType(CoinType.valueOf(rs.getString("coin_type")));
-//            tradeHistory.setTargetCoinType(CoinType.valueOf(rs.getString("target_coin_type")));
-//            tradeHistory.setPrice(rs.getDouble("price"));
-//            tradeHistory.setNormalizePrice(rs.getDouble("normalize_price"));
-//            tradeHistory.setAmount(rs.getDouble("amount"));
-//            tradeHistory.setResult(TradeResult.valueOf(rs.getString("result")));
-//            tradeHistory.setAccountName(rs.getString("account_name"));
-//            tradeHistory.setPreAccountSourceAmount(rs.getDouble("pre_account_source_amount"));
-//            tradeHistory.setAfterAccountSourceAmount(rs.getDouble("after_account_source_amount"));
-//            tradeHistory.setPreAccountTargetAmount(rs.getDouble("pre_account_target_amount"));
-//            tradeHistory.setAfterAccountTargetAmount(rs.getDouble("after_account_target_amount"));
-//            tradeHistory.setTradeTs(rs.getLong("trade_ts"));
-//            tradeHistory.setNormalizeFee(rs.getDouble("normalize_fee"));
-//            tradeHistory.setGmtCreated(rs.getString("gmt_created"));
-//            tradeHistoryList.add(tradeHistory);
-//        }
-//        rs.close();
-//        preparedStatement.close();
-//        return tradeHistoryList;
-//    }
+    public List<DepthInfoHistory> list(String platform, String sourceCoin, Long startTs, Long endTs) throws SQLException {
+        List<DepthInfoHistory> depthInfoHistoryList = new ArrayList<>();
+        String selectSQL = "SELECT * FROM depth_info_history where platform = ? and source_coin = ? and sample_ts >= ? and sample_ts <= ? order by id desc limit 400";
+        PreparedStatement preparedStatement = this.connection.prepareStatement(selectSQL);
+        preparedStatement.setString(1, platform);
+        preparedStatement.setString(2, sourceCoin);
+        preparedStatement.setLong(3, startTs);
+        preparedStatement.setLong(4, endTs);
+
+//        preparedStatement.setInt(1, 1001);
+        ResultSet rs = preparedStatement.executeQuery();
+        while (rs.next()) {
+            DepthInfoHistory depthInfoHistory = new DepthInfoHistory();
+            depthInfoHistory.setPlatform(TradePlatform.valueOf(rs.getString("platform")));
+            depthInfoHistory.setSourceCoin(CoinType.valueOf(rs.getString("source_coin")));
+            depthInfoHistory.setTargetCoin(CoinType.valueOf(rs.getString("target_coin")));
+
+            depthInfoHistory.setOriBidPrice1(rs.getDouble("ori_bid_price1"));
+            depthInfoHistory.setNormalizeBidPrice1(rs.getDouble("normalize_bid_price1"));
+            depthInfoHistory.setBidAmount1(rs.getDouble("bid_amount1"));
+
+            depthInfoHistory.setOriAskPrice1(rs.getDouble("ori_ask_price1"));
+            depthInfoHistory.setNormalizeAskPrice1(rs.getDouble("normalize_ask_price1"));
+            depthInfoHistory.setAskAmount1(rs.getDouble("ask_amount1"));
+
+            depthInfoHistory.setSampleTs(rs.getLong("sample_ts"));
+            depthInfoHistoryList.add(depthInfoHistory);
+        }
+        rs.close();
+        preparedStatement.close();
+        return depthInfoHistoryList;
+    }
 
     private static void createTradeDepthInfo() {
         Connection c = null;

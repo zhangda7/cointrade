@@ -8,6 +8,7 @@ import com.spare.cointrade.actor.trade.TradeJudge;
 import com.spare.cointrade.actor.trade.TradeJudgeV2;
 import com.spare.cointrade.actor.trade.TradeJudgeV3;
 import com.spare.cointrade.model.*;
+import com.spare.cointrade.service.DepthInfoHistoryService;
 import com.spare.cointrade.service.TradeHistoryService;
 import com.spare.cointrade.trade.okcoin.StringUtil;
 import com.spare.cointrade.util.TradeConfigContext;
@@ -189,6 +190,59 @@ public class StatusController {
         }
         restfulPage.setCode(CODE_FAIL);
         restfulPage.setData("");
+        return JSON.toJSONString(restfulPage);
+    }
+
+    @RequestMapping("/listingDepthHistory")
+    public String listingDepthHistory(
+            @RequestParam(value = "platform") String platform,
+            @RequestParam(value = "sourceCoin") String sourceCoin,
+            @RequestParam(value = "startTime") String startTime,
+            @RequestParam(value = "endTime") String endTime) {
+        RestfulPage restfulPage = new RestfulPage();
+        restfulPage.setCode(CODE_SUCCESS);
+
+        try{
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+            Date startDate = sdf.parse(startTime);
+            Date endDate = sdf.parse(endTime);
+            long startTs = startDate.getTime();
+            long endTs = endDate.getTime();
+            logger.info("Receive time query [{} {}] [{} {}]", startTime, startDate, endTime, endDate);
+            List<DepthInfoHistory> depthInfoHistoryList = DepthInfoHistoryService.INSTANCE.list(sourceCoin, startTs, endTs);
+            JSONObject data = new JSONObject();
+            JSONArray xAsis = new JSONArray();
+            JSONArray binance = new JSONArray();
+            JSONArray bithumb = new JSONArray();
+            Map<Long, List<DepthInfoHistory>> tmpMap = new TreeMap<>();
+            for(DepthInfoHistory depthInfoHistory : depthInfoHistoryList) {
+                if(! tmpMap.containsKey(depthInfoHistory.getSampleTs())) {
+                    tmpMap.put(depthInfoHistory.getSampleTs(), new ArrayList<>());
+                }
+                tmpMap.get(depthInfoHistory.getSampleTs()).add(depthInfoHistory);
+            }
+            for (Map.Entry<Long, List<DepthInfoHistory>> entry : tmpMap.entrySet()) {
+                if(entry.getValue().size() < 2) {
+                    continue;
+                }
+                xAsis.add(entry.getKey());
+                for (DepthInfoHistory depthInfoHistory : entry.getValue()) {
+                    if(depthInfoHistory.getPlatform().equals(TradePlatform.BINANCE)) {
+                        binance.add(depthInfoHistory.getNormalizeAskPrice1());
+                    } else if(depthInfoHistory.getPlatform().equals(TradePlatform.BITHUMB)) {
+                        bithumb.add(depthInfoHistory.getNormalizeAskPrice1());
+                    }
+                }
+            }
+            data.put("xaxis", xAsis);
+            data.put("binance", binance);
+            data.put("bithumb", bithumb);
+            restfulPage.setData(JSON.toJSONString(data));
+
+        } catch (Exception e) {
+            logger.error("ERROR ", e);
+        }
+
         return JSON.toJSONString(restfulPage);
     }
 

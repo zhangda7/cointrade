@@ -41,7 +41,7 @@ public class CoinApplicationMain {
         AkkaContext.getSystem().actorOf(OkCoinTrader.props(), "okCoinTrader");
         AkkaContext.getSystem().actorOf(ListingInfoMonitor.props(), CoinTradeConstants.ACTOR_LISTING_INFO_MONITOR);
         AkkaContext.getSystem().actorOf(TradeStateSyncer.props(), CoinTradeConstants.ACTOR_TRADE_STATE_SYNCER);
-        AkkaContext.getSystem().actorOf(DepthInfoHistoryMonitor.props(), CoinTradeConstants.ACTOR_DEPTH_INFO_HISTORY_MONITOR);
+//        AkkaContext.getSystem().actorOf(DepthInfoHistoryMonitor.props(), CoinTradeConstants.ACTOR_DEPTH_INFO_HISTORY_MONITOR);
 
 
     }

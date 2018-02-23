@@ -195,7 +195,6 @@ public class StatusController {
 
     @RequestMapping("/listingDepthHistory")
     public String listingDepthHistory(
-            @RequestParam(value = "platform") String platform,
             @RequestParam(value = "sourceCoin") String sourceCoin,
             @RequestParam(value = "startTime") String startTime,
             @RequestParam(value = "endTime") String endTime) {
@@ -204,6 +203,7 @@ public class StatusController {
 
         try{
             SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+            SimpleDateFormat simpleSdf = new SimpleDateFormat("dd HH:mm:ss");
             Date startDate = sdf.parse(startTime);
             Date endDate = sdf.parse(endTime);
             long startTs = startDate.getTime();
@@ -214,6 +214,7 @@ public class StatusController {
             JSONArray xAsis = new JSONArray();
             JSONArray binance = new JSONArray();
             JSONArray bithumb = new JSONArray();
+            JSONArray delta = new JSONArray();
             Map<Long, List<DepthInfoHistory>> tmpMap = new TreeMap<>();
             for(DepthInfoHistory depthInfoHistory : depthInfoHistoryList) {
                 if(! tmpMap.containsKey(depthInfoHistory.getSampleTs())) {
@@ -223,9 +224,10 @@ public class StatusController {
             }
             for (Map.Entry<Long, List<DepthInfoHistory>> entry : tmpMap.entrySet()) {
                 if(entry.getValue().size() < 2) {
+                    //这里可能会出来3个的，就是一个币种有多种组合的情况。后面再处理这种展示
                     continue;
                 }
-                xAsis.add(entry.getKey());
+                xAsis.add(simpleSdf.format(new Date(entry.getKey())));
                 for (DepthInfoHistory depthInfoHistory : entry.getValue()) {
                     if(depthInfoHistory.getPlatform().equals(TradePlatform.BINANCE)) {
                         binance.add(depthInfoHistory.getNormalizeAskPrice1());
@@ -233,10 +235,13 @@ public class StatusController {
                         bithumb.add(depthInfoHistory.getNormalizeAskPrice1());
                     }
                 }
+                delta.add((Double)(binance.get(binance.size() - 1)) - (Double)(bithumb.get(bithumb.size() - 1)));
             }
             data.put("xaxis", xAsis);
             data.put("binance", binance);
             data.put("bithumb", bithumb);
+            data.put("delta", delta);
+            data.put("count", xAsis.size());
             restfulPage.setData(JSON.toJSONString(data));
 
         } catch (Exception e) {

@@ -78,7 +78,7 @@ public class DepthInfoHistoryService {
 
     public List<DepthInfoHistory> list(String sourceCoin, Long startTs, Long endTs) throws SQLException {
         List<DepthInfoHistory> depthInfoHistoryList = new ArrayList<>();
-        String selectSQL = "SELECT * FROM depth_info_history where source_coin = ? and sample_ts >= ? and sample_ts <= ? order by id desc limit 400";
+        String selectSQL = "SELECT * FROM depth_info_history where source_coin = ? and sample_ts >= ? and sample_ts <= ? order by id desc limit 40000";
         PreparedStatement preparedStatement = this.connection.prepareStatement(selectSQL);
         preparedStatement.setString(1, sourceCoin);
         preparedStatement.setLong(2, startTs);

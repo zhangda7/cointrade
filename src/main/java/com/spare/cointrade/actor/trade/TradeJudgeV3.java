@@ -39,7 +39,7 @@ public class TradeJudgeV3 {
         TradeJudgeV3.canTrade = canTrade;
     }
 
-    private static final Double REVERSE_AVERAGE_NORMALIZE_PERCENT = 0.95;
+    private static final Double REVERSE_AVERAGE_NORMALIZE_PERCENT = 0.99;
 
     private static final Double REVERSE_TOTAL_NORLAIZE_PERCENT = 0.3;
 

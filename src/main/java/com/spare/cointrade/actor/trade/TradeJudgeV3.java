@@ -21,7 +21,7 @@ public class TradeJudgeV3 {
 
     private static Logger logger = LoggerFactory.getLogger(TradeJudgeV3.class);
 
-    private static Logger tradeChanceLogger = LoggerFactory.getLogger(TradeChanceLog.class);
+//    private static Logger tradeChanceLogger = LoggerFactory.getLogger(TradeChanceLog.class);
 
     private ActorSelection tradeStateSyncer;
 
@@ -66,7 +66,7 @@ public class TradeJudgeV3 {
 
     private void doTrade(TradePair tradePair) {
         if(! canTrade) {
-            tradeChanceLogger.info("Status of canTrade is {}, just return", canTrade);
+            logger.debug("Status of canTrade is {}, just return", canTrade);
             return;
         }
         tradePair.setPairId(String.valueOf(pairIdGenerator.incrementAndGet()));
@@ -179,7 +179,7 @@ public class TradeJudgeV3 {
 //            return;
         }
         for(TradePair tradePair : tradePairList) {
-            tradeChanceLogger.info("Find tradePair {}", JSON.toJSONString(tradePair));
+            logger.info("Find tradePair {}", JSON.toJSONString(tradePair));
             doTrade(tradePair);
         }
 
@@ -194,7 +194,7 @@ public class TradeJudgeV3 {
             return;
         }
         for(TradePair tradePair : reverseTradePairList) {
-            tradeChanceLogger.info("Find reverse tradePair {}", JSON.toJSONString(tradePair));
+            logger.info("Find reverse tradePair {}", JSON.toJSONString(tradePair));
             doTrade(tradePair);
         }
 
@@ -232,6 +232,8 @@ public class TradeJudgeV3 {
                 continue;
             }
             tradePairList.add(maxDeltaPair);
+            //一次最多返回一次reverse交易
+            return tradePairList;
         }
         return tradePairList;
     }
@@ -245,17 +247,8 @@ public class TradeJudgeV3 {
         List<TradePair> tradePairList = new ArrayList<>();
         List<OrderBookEntry> entryList = new ArrayList<>();
         entryList.addAll(chanceTradeMap.values());
-        Collections.sort(entryList, (o1, o2) -> {
-//            @Override
-//            public int compare(OrderBookEntry o1, OrderBookEntry o2) {
-                return (int) (o1.getNormaliseTo10KDelta() - o2.getNormaliseTo10KDelta());
-//            }
-        });
+        Collections.sort(entryList, (o1, o2) -> (int) (o1.getNormaliseTo10KDelta() - o2.getNormaliseTo10KDelta()));
         for(OrderBookEntry orderBookEntry : entryList) {
-//            OrderBookHistory orderBookHistory = TradeConfigContext.getINSTANCE().getOrderBookHistory(orderBookEntry.getCoinType());
-//            if(Math.abs(orderBookEntry.getNormaliseTo10KDelta()) > orderBookHistory.getAverageProfit() * REVERSE_AVERAGE_NORMALIZE_PERCENT) {
-//                continue;
-//            }
             double normaliseDelta = Math.abs(orderBookEntry.getNormalisePrice1() - orderBookEntry.getNormalisePrice2());
 
             for(Map.Entry<CoinType,OrderBookHistory> entry : TradeConfigContext.getINSTANCE().getOrderBookHistoryMap().entrySet()) {
@@ -279,7 +272,7 @@ public class TradeJudgeV3 {
 //                    continue;
 //                }
                 //TODO 再这里增加更详细的判断 how?
-                tradeChanceLogger.info("Can do reverse trade, cur delta {}, target average profit {}",
+                logger.info("Can do reverse trade, cur delta {}, target average profit {}",
                         orderBookEntry.getNormaliseTo10KDelta(), orderBookHistory.getAverageProfit(), JSON.toJSONString(orderBookEntry));
                 TradePair maxDeltaPair = createReverseTradePair(orderBookEntry);
                 if(maxDeltaPair == null) {
@@ -396,7 +389,7 @@ public class TradeJudgeV3 {
         minAmount = Math.min(minAmount, TradeConfigContext.getINSTANCE().getMaxTradeAmount(orderBookEntry.getCoinType()));
 
         if(minAmount < coinMinTradeAmount) {
-            tradeChanceLogger.info("Min amount is {} < {}, just return [{} {} {}] [{} {} {}]",
+            logger.info("Min amount is {} < {}, just return [{} {} {}] [{} {} {}]",
                     minAmount, coinMinTradeAmount, buySide.getTradePlatform(), buySide.getSourceCoinType(), buySide.getTargetCoinType(),
                     sellSide.getTradePlatform(), sellSide.getSourceCoinType(), sellSide.getTargetCoinType());
             return null;
@@ -522,50 +515,6 @@ public class TradeJudgeV3 {
         return btcTrade;
     }
 
-//    private SignalTrade balanceBinanceBTC(SignalTrade signalTrade) {
-//        if(! signalTrade.getTradePlatform().equals(TradePlatform.BINANCE)) {
-//            return null;
-//        }
-//        if(! signalTrade.getTargetCoin().equals(CoinType.BTC)) {
-//            return null;
-//        }
-//        SignalTrade btcTrade = null;
-//        Double costBtc = signalTrade.getPrice() * signalTrade.getAmount();
-//        ListingFullInfo btcFullInfo = ListingInfoMonitor.listingFullInfoMap.get(
-//                toiListingInfoKey(signalTrade.getTradePlatform(), CoinType.BTC, CoinType.USDT));
-//
-//        if(signalTrade.getTradeAction().equals(TradeAction.BUY)) {
-//            //cost btc,need buy btc
-//            ListingDepth.DepthInfo depthInfo = ListingDepthUtil.getLevelDepthInfo(btcFullInfo.getSellDepth(), MONITOR_DEPTH_LEVEL);
-//            double maxBuyAmount = AccountManager.INSTANCE.getFreeAmount(
-//                    signalTrade.getTradePlatform(), CoinType.USDT) / depthInfo.getOriPrice();
-//            if(maxBuyAmount < costBtc) {
-//                throw new RuntimeException("Not enough USDT to buy " + costBtc + "BTC");
-//            }
-//            btcTrade = makeOneTrade(signalTrade.getTradePlatform(),
-//                CoinType.BTC, CoinType.USDT,
-//                TradeAction.BUY,
-//                depthInfo.getOriPrice(), costBtc,
-//                depthInfo.getNormalizePrice());
-//        } else if(signalTrade.getTradeAction().equals(TradeAction.SELL)){
-//            // need sell btc
-//            ListingDepth.DepthInfo depthInfo = ListingDepthUtil.getLevelDepthInfo(btcFullInfo.getBuyDepth(), MONITOR_DEPTH_LEVEL);
-//            Double curBtcCount = AccountManager.INSTANCE.getFreeAmount(
-//                    signalTrade.getTradePlatform(), CoinType.BTC);
-//            if(curBtcCount < costBtc) {
-//                throw new RuntimeException("Not enough BTC to sell " + costBtc + "BTC");
-//            }
-//            btcTrade = makeOneTrade(signalTrade.getTradePlatform(),
-//                    CoinType.BTC, CoinType.USDT,
-//                    TradeAction.SELL,
-//                    depthInfo.getOriPrice(), costBtc,
-//                    depthInfo.getNormalizePrice());
-//        }
-//        //这个关联交易还是比较复杂的，如果要买入BTC的话，还要检查USDT的钱够不够
-//
-//        return btcTrade;
-//    }
-
     /**
      * 对于已经计算好的2个交易对，找到最小的归一化价格，再调整他们的交易数量
      * @param maxDeltaPair
@@ -622,7 +571,6 @@ public class TradeJudgeV3 {
             if(orderBookEntryMap == null) {
                 continue;
             }
-//            chanceTradeMap.putAll(orderBookEntryMap);
             tmpMap.putAll(orderBookEntryMap);
         }
         chanceTradeMap.clear();
@@ -652,6 +600,7 @@ public class TradeJudgeV3 {
             if(cur == null) {
                 break;
             }
+            logger.debug("Begin check trade chance of {} [{} - {}]", coinType, preKey, cur);
             ListingFullInfo fullInfo1 = fullInfoMap.get(preKey);
             ListingFullInfo fullInfo2 = fullInfoMap.get(cur);
             OrderBookEntry orderBookEntry = checkTradeChanceBy2Platform(coinType, fullInfo1, fullInfo2);

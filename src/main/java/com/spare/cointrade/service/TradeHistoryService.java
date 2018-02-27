@@ -115,7 +115,7 @@ public class TradeHistoryService {
 
     public List<TradeHistory> listByDate(Long startTs, Long endTs) throws SQLException {
         List<TradeHistory> tradeHistoryList = new ArrayList<>();
-        String selectSQL = "SELECT * FROM trade_history where trade_ts >= ? and trade_ts <= ? order by id desc limit 400";
+        String selectSQL = "SELECT * FROM trade_history where trade_ts >= ? and trade_ts <= ? order by id desc limit 8000";
         PreparedStatement preparedStatement = this.connection.prepareStatement(selectSQL);
         preparedStatement.setLong(1, startTs);
         preparedStatement.setLong(2, endTs);

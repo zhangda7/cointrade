@@ -94,6 +94,23 @@ public class DepthInfoHistoryService {
         return depthInfoHistoryList;
     }
 
+    public List<DepthInfoHistory> listAll(Long startTs, Long endTs) throws SQLException {
+        List<DepthInfoHistory> depthInfoHistoryList = new ArrayList<>();
+        String selectSQL = "SELECT * FROM depth_info_history where sample_ts >= ? and sample_ts <= ?";
+        PreparedStatement preparedStatement = this.connection.prepareStatement(selectSQL);
+        preparedStatement.setLong(1, startTs);
+        preparedStatement.setLong(2, endTs);
+
+        ResultSet rs = preparedStatement.executeQuery();
+        while (rs.next()) {
+            DepthInfoHistory depthInfoHistory = convertSimple(rs);
+            depthInfoHistoryList.add(depthInfoHistory);
+        }
+        rs.close();
+        preparedStatement.close();
+        return depthInfoHistoryList;
+    }
+
     public List<DepthInfoHistory> list(String platform, String sourceCoin, Long startTs, Long endTs) throws SQLException {
         List<DepthInfoHistory> depthInfoHistoryList = new ArrayList<>();
         String selectSQL = "SELECT * FROM depth_info_history where platform = ? and source_coin = ? and sample_ts >= ? and sample_ts <= ? order by id desc limit 400";

@@ -32,6 +32,16 @@ public class CoinApplicationMain {
     @Autowired
     private ApplicationContext applicationContext;
 
+    /**
+     * 是否开启重放模式
+     */
+    public static boolean isReplay = false;
+
+    /**
+     * 是否开启提币搬砖模式
+     */
+    public static boolean enableBalanceWithDraw = false;
+
     public static void initActor() {
 //        AkkaContext.getSystem().actorOf(TradeJudge.props(), "tradeJudge");
         AkkaContext.getSystem().actorOf(TradeJudgeV2.props(), "tradeJudge");
@@ -53,11 +63,19 @@ public class CoinApplicationMain {
         AccountManager.INSTANCE.addAccount(bithumb);
     }
 
-    public static void main(String[] args) {
-//        initActor();
+    public static void normalRun(String[] args) {
         mockAccount();
-//        TradeJudgeV3.setCanTrade(false);
         SpringApplication.run(CoinApplicationMain.class, args);
+    }
+
+    public static void replay(String[] args) {
+        isReplay = true;
+        normalRun(args);
+    }
+
+
+    public static void main(String[] args) {
+        replay(args);
     }
 
 //    @Bean

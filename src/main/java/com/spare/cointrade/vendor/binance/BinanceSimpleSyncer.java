@@ -6,6 +6,7 @@ import com.binance.api.client.BinanceApiClientFactory;
 import com.binance.api.client.BinanceApiRestClient;
 import com.binance.api.client.domain.market.OrderBook;
 import com.binance.api.client.domain.market.OrderBookEntry;
+import com.spare.cointrade.CoinApplicationMain;
 import com.spare.cointrade.ExchangeContext;
 import com.spare.cointrade.model.*;
 import com.spare.cointrade.util.AkkaContext;
@@ -50,6 +51,10 @@ public class BinanceSimpleSyncer implements Runnable {
     public void start() {
         if(! started.compareAndSet(false, true)) {
             logger.error("Syncer has started");
+            return;
+        }
+        if(CoinApplicationMain.isReplay) {
+            logger.error("In replay mode, not start BinanceSimpleSyncer");
             return;
         }
         listingInfoMonitor = AkkaContext.getSystem().actorSelection(

@@ -1,5 +1,7 @@
 package com.spare.cointrade.util;
 
+import java.util.Comparator;
+
 /**
  * Created by dada on 2017/8/30.
  */
@@ -22,5 +24,17 @@ public class CoinTradeConstants {
 
     public static final Double FIX_SERVICE_CHARGE = 0.0021;
 
+    public static final Comparator<Double> COMPARATOR_BUY_DEPTH = new Comparator<Double>() {
+        @Override
+        public int compare(Double o1, Double o2) {
+            return o1.compareTo(o2);
+        }
+    };
 
+    public static final Comparator<Double> COMPARATOR_SELL_DEPTH = new Comparator<Double>() {
+        @Override
+        public int compare(Double o1, Double o2) {
+            return o2.compareTo(o1);
+        }
+    };
 }

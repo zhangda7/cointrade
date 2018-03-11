@@ -1,6 +1,7 @@
 package com.spare.cointrade.actor.monitor;
 
 import com.alibaba.fastjson.JSON;
+import com.spare.cointrade.CoinApplicationMain;
 import com.spare.cointrade.account.AccountManager;
 import com.spare.cointrade.model.*;
 import com.spare.cointrade.service.TradeHistoryService;
@@ -34,6 +35,10 @@ public class BalanceWithDrawMonitor implements Runnable {
     private void start() {
         if(! started.compareAndSet(false, true)) {
             logger.error("BalanceWithDrawMonitor has started, just return");
+            return;
+        }
+        if(! CoinApplicationMain.enableBalanceWithDraw) {
+            logger.warn("Not enable balance with draw, just return");
             return;
         }
         scheduledExecutorService = Executors.newScheduledThreadPool(1, new DefaultThreadFactory("BalanceWithDrawMonitor"));

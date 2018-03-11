@@ -3,6 +3,7 @@ package com.spare.cointrade.actor.trade;
 import akka.actor.ActorRef;
 import akka.actor.ActorSelection;
 import com.alibaba.fastjson.JSON;
+import com.spare.cointrade.CoinApplicationMain;
 import com.spare.cointrade.ExchangeContext;
 import com.spare.cointrade.actor.monitor.ListingInfoMonitor;
 import com.spare.cointrade.log.TradeChanceLog;
@@ -109,7 +110,10 @@ public class TradeJudgeV3 {
 
         logger.info("Normalise profit change [{} {} {}] -> [{} {} {}]", preTotalProfit, preAmount, preAverageProfit,
                 orderBookHistory.getTotalProfit(), orderBookHistory.getTotalAmount(), orderBookHistory.getAverageProfit());
-        canTrade = false;
+        if(!CoinApplicationMain.isReplay) {
+            //replay模式时，每次都可以交易
+            canTrade = false;
+        }
         this.tradeStateSyncer.tell(tradePair, ActorRef.noSender());
     }
 

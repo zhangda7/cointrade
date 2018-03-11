@@ -1,5 +1,6 @@
 package com.spare.cointrade.model;
 
+import com.spare.cointrade.util.CoinTradeConstants;
 import lombok.Data;
 
 import java.util.Comparator;
@@ -43,18 +44,8 @@ public class ListingFullInfo {
     private InfoStatus infoStatus;
 
     public ListingFullInfo() {
-        this.buyDepth = new ListingDepth(new Comparator<Double>() {
-            @Override
-            public int compare(Double o1, Double o2) {
-                return o1.compareTo(o2);
-            }
-        });
-        this.sellDepth = new ListingDepth(new Comparator<Double>() {
-            @Override
-            public int compare(Double o1, Double o2) {
-                return o2.compareTo(o1);
-            }
-        });
+        this.buyDepth = new ListingDepth(CoinTradeConstants.COMPARATOR_BUY_DEPTH);
+        this.sellDepth = new ListingDepth(CoinTradeConstants.COMPARATOR_SELL_DEPTH);
     }
 
 //    public String toFullKey() {

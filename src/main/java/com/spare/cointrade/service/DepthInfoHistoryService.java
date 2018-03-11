@@ -94,6 +94,23 @@ public class DepthInfoHistoryService {
         return depthInfoHistoryList;
     }
 
+    public List<DepthInfoHistory> listByTs(Long startTs, Long endTs) throws SQLException {
+        List<DepthInfoHistory> depthInfoHistoryList = new ArrayList<>();
+        String selectSQL = "SELECT * FROM depth_info_history where sample_ts >= ? and sample_ts <= ? order by id desc limit 40000";
+        PreparedStatement preparedStatement = this.connection.prepareStatement(selectSQL);
+        preparedStatement.setLong(1, startTs);
+        preparedStatement.setLong(2, endTs);
+
+        ResultSet rs = preparedStatement.executeQuery();
+        while (rs.next()) {
+            DepthInfoHistory depthInfoHistory = convertAll(rs);
+            depthInfoHistoryList.add(depthInfoHistory);
+        }
+        rs.close();
+        preparedStatement.close();
+        return depthInfoHistoryList;
+    }
+
     public List<DepthInfoHistory> listAll(Long startTs, Long endTs) throws SQLException {
         List<DepthInfoHistory> depthInfoHistoryList = new ArrayList<>();
         String selectSQL = "SELECT * FROM depth_info_history where sample_ts >= ? and sample_ts <= ?";
@@ -133,6 +150,24 @@ public class DepthInfoHistoryService {
     private DepthInfoHistory convertSimple(ResultSet rs) throws SQLException {
         DepthInfoHistory depthInfoHistory = new DepthInfoHistory();
         depthInfoHistory.setPlatform(TradePlatform.valueOf(rs.getString("platform")));
+        depthInfoHistory.setSourceCoin(CoinType.valueOf(rs.getString("source_coin")));
+        depthInfoHistory.setTargetCoin(CoinType.valueOf(rs.getString("target_coin")));
+
+        depthInfoHistory.setNormalizeBidPrice1(rs.getDouble("normalize_bid_price1"));
+        depthInfoHistory.setNormalizeAskPrice1(rs.getDouble("normalize_ask_price1"));
+        depthInfoHistory.setSampleTs(rs.getLong("sample_ts"));
+        return depthInfoHistory;
+    }
+
+    private DepthInfoHistory convertAll(ResultSet rs) throws SQLException {
+        DepthInfoHistory depthInfoHistory = convertSimple(rs);
+
+        depthInfoHistory.setBidAmount1(rs.getDouble("bid_amount1"));
+        depthInfoHistory.setOriBidPrice1(rs.getDouble("ori_bid_price1"));
+        depthInfoHistory.setAskAmount1(rs.getDouble("ask_amount1"));
+        depthInfoHistory.setOriAskPrice1(rs.getDouble("ori_ask_price1"));
+
+
         depthInfoHistory.setSourceCoin(CoinType.valueOf(rs.getString("source_coin")));
         depthInfoHistory.setTargetCoin(CoinType.valueOf(rs.getString("target_coin")));
 

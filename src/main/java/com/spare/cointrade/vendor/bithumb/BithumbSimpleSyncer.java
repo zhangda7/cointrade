@@ -4,6 +4,7 @@ import akka.actor.ActorRef;
 import akka.actor.ActorSelection;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
+import com.spare.cointrade.CoinApplicationMain;
 import com.spare.cointrade.ExchangeContext;
 import com.spare.cointrade.model.*;
 import com.spare.cointrade.util.AkkaContext;
@@ -38,6 +39,10 @@ public class BithumbSimpleSyncer implements Runnable {
     public void start() {
         if(! started.compareAndSet(false, true)) {
             logger.error("Syncer has started");
+            return;
+        }
+        if(CoinApplicationMain.isReplay) {
+            logger.error("In replay mode, not start BithumbSimpleSyncer");
             return;
         }
         apiClient = new Api_Client("api connect key",
